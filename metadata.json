@@ -1,0 +1,9 @@
+{
+  "name": "VOID",
+  "description": "A minimalist, cyberpunk-themed note-taking app powered by Gemini for lightning-fast content creation, analysis, and multimedia generation.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}

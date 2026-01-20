@@ -15,7 +15,9 @@ export const createNewNote = (): Note => ({
   createdAt: Date.now(),
   updatedAt: Date.now(),
   tags: [],
-  attachments: []
+  attachments: [],
+  pinned: false,
+  archived: false
 });
 
 export const formatTime = (ms: number) => {

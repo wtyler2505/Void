@@ -6,6 +6,9 @@ export interface Note {
   updatedAt: number;
   tags: string[];
   attachments: Attachment[];
+  pinned?: boolean;
+  archived?: boolean;
+  archivedAt?: number;
 }
 
 export interface Attachment {

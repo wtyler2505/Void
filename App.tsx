@@ -7,44 +7,73 @@ import { saveNotes, loadNotes } from './services/store';
 import { createNewNote } from './utils';
 import { ChatOverlay } from './components/ChatOverlay';
 import { SyncModal } from './components/SyncModal';
+import { ExportModal } from './components/ExportModal';
+import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
+import { useGlobalShortcuts } from './services/shortcuts';
 import * as Gemini from './services/gemini';
 import { ICONS } from './constants';
 
 const App: React.FC = () => {
-  // 1. Robust Lazy Initialization
-  const [notes, setNotes] = useState<Note[]>(() => {
-    const saved = loadNotes();
-    if (saved && saved.length > 0) {
-      return saved;
-    }
-    return [createNewNote()]; 
-  });
+  const [isStorageReady, setIsStorageReady] = useState(false);
+  
+  // 1. Initialize with empty, wait for DB
+  const [notes, setNotes] = useState<Note[]>([]);
 
-  // 2. Persist Active Note Selection
+  // 2. Persist Active Note Selection (Keep in LocalStorage as it is small)
   const [activeNoteId, setActiveNoteId] = useState<string | null>(() => {
-    const savedId = localStorage.getItem('void_active_note');
-    const currentNotes = loadNotes(); 
-    if (savedId && currentNotes.some(n => n.id === savedId)) return savedId;
-    if (currentNotes.length > 0) return currentNotes[0].id;
-    return null;
+    return localStorage.getItem('void_active_note');
   });
 
   const [view, setView] = useState<AppView>('editor');
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isSyncOpen, setIsSyncOpen] = useState(false);
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
   const [isFusing, setIsFusing] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile sidebar state
+  const [isGenesis, setIsGenesis] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const notesRef = useRef(notes);
   useEffect(() => { notesRef.current = notes; }, [notes]);
 
-  // 3. Persistence Effects
+  // 3. Load from IndexedDB on Mount
   useEffect(() => {
+    const initData = async () => {
+        const loaded = await loadNotes();
+        if (loaded && loaded.length > 0) {
+            setNotes(loaded);
+            // Ensure valid active ID
+            const savedId = localStorage.getItem('void_active_note');
+            if (!savedId || !loaded.find(n => n.id === savedId && !n.archived)) {
+                const available = loaded.filter(n => !n.archived);
+                if (available.length > 0) {
+                    setActiveNoteId(available[0].id);
+                } else {
+                    const fresh = createNewNote();
+                    setNotes([fresh, ...loaded]);
+                    setActiveNoteId(fresh.id);
+                }
+            }
+        } else {
+            // First time user or empty DB
+            const fresh = createNewNote();
+            setNotes([fresh]);
+            setActiveNoteId(fresh.id);
+        }
+        setIsStorageReady(true);
+    };
+    initData();
+  }, []);
+
+  // 4. Persistence Effects
+  useEffect(() => {
+    if (!isStorageReady) return; // Don't save empty state while loading
+    
     const timeoutId = setTimeout(() => {
       saveNotes(notes);
     }, 800);
     return () => clearTimeout(timeoutId);
-  }, [notes]);
+  }, [notes, isStorageReady]);
 
   useEffect(() => {
     if (activeNoteId) {
@@ -54,17 +83,13 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const handleBeforeUnload = () => {
-        saveNotes(notesRef.current);
+        if (notesRef.current.length > 0) {
+            saveNotes(notesRef.current);
+        }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
-
-  useEffect(() => {
-    if (!activeNoteId && notes.length > 0) {
-      setActiveNoteId(notes[0].id);
-    }
-  }, [activeNoteId, notes]);
 
   const activeNote = notes.find(n => n.id === activeNoteId) || null;
 
@@ -72,39 +97,93 @@ const App: React.FC = () => {
     const newNote = createNewNote();
     setNotes(prev => [newNote, ...prev]);
     setActiveNoteId(newNote.id);
-    setIsSidebarOpen(false); // Close mobile sidebar on create
+    setIsSidebarOpen(false);
   }, []);
 
-  const handleDeleteNote = useCallback((id: string) => {
-    const remaining = notes.filter(n => n.id !== id);
-    
-    let nextNotes = remaining;
-    let nextId = activeNoteId;
-
-    if (remaining.length === 0) {
-        const fresh = createNewNote();
-        nextNotes = [fresh];
-        nextId = fresh.id;
-    } else if (id === activeNoteId) {
-        nextId = remaining[0].id;
-    }
-
-    setNotes(nextNotes);
-    if (nextId !== activeNoteId) {
-        setActiveNoteId(nextId);
-    }
-  }, [notes, activeNoteId]);
+  // Specialized creator for Chat to allow params and trigger Genesis effect
+  const handleCreateNoteWithContent = useCallback((title: string, content: string, tags: string[] = []) => {
+      const newNote = createNewNote();
+      newNote.title = title;
+      newNote.content = content;
+      newNote.tags = tags;
+      setNotes(prev => [newNote, ...prev]);
+      setActiveNoteId(newNote.id);
+      
+      // Trigger Genesis Effect
+      setIsGenesis(true);
+      setTimeout(() => setIsGenesis(false), 2000);
+  }, []);
 
   const handleUpdateNote = useCallback((id: string, updates: Partial<Note>) => {
     setNotes(prev => prev.map(n => n.id === id ? { ...n, ...updates, updatedAt: Date.now() } : n));
   }, []);
 
+  // Global Batch Tag Update for Taxonomy Control
+  const handleBatchTagUpdate = useCallback((action: 'rename' | 'delete', oldTag: string, newTag?: string) => {
+    setNotes(prev => prev.map(note => {
+        if (!note.tags.includes(oldTag)) return note;
+        
+        // Remove old tag
+        const tagsWithoutOld = note.tags.filter(t => t !== oldTag);
+        
+        let newTags = tagsWithoutOld;
+        // If rename, add new tag if not already present
+        if (action === 'rename' && newTag) {
+            if (!newTags.includes(newTag)) {
+                newTags = [...newTags, newTag];
+            }
+        }
+        
+        return { ...note, tags: newTags, updatedAt: Date.now() };
+    }));
+  }, []);
+
+  const handleDeleteForever = useCallback((id: string) => {
+    const remaining = notes.filter(n => n.id !== id);
+    let nextNotes = remaining;
+    
+    // Only switch selection if we deleted the active note or if no notes left
+    if (id === activeNoteId || remaining.length === 0) {
+        // Filter out archived for selection logic
+        const available = remaining.filter(n => !n.archived);
+        if (available.length > 0) {
+            setActiveNoteId(available[0].id);
+        } else {
+             const fresh = createNewNote();
+             nextNotes = [fresh, ...remaining];
+             setActiveNoteId(fresh.id);
+        }
+    }
+
+    setNotes(nextNotes);
+  }, [notes, activeNoteId]);
+
+  const handleArchiveNote = useCallback((id: string) => {
+      handleUpdateNote(id, { archived: true, archivedAt: Date.now() });
+      
+      // If we archived the active note, switch to another
+      if (id === activeNoteId) {
+          const available = notes.filter(n => n.id !== id && !n.archived);
+          if (available.length > 0) {
+              setActiveNoteId(available[0].id);
+          } else {
+              // Create new note if all are archived
+              const fresh = createNewNote();
+              setNotes(prev => [fresh, ...prev]);
+              setActiveNoteId(fresh.id);
+          }
+      }
+  }, [notes, activeNoteId, handleUpdateNote]);
+
+  const handleRestoreNote = useCallback((id: string) => {
+      handleUpdateNote(id, { archived: false, archivedAt: undefined });
+  }, [handleUpdateNote]);
+
   const handleSelectNote = (id: string) => {
       setActiveNoteId(id);
-      setIsSidebarOpen(false); // Close sidebar on selection (mobile)
+      setIsSidebarOpen(false); 
   };
 
-  // --- Neural Alchemy: Note Fusion ---
   const handleFuseNotes = useCallback(async (sourceId: string, targetId: string) => {
       const sourceNote = notes.find(n => n.id === sourceId);
       const targetNote = notes.find(n => n.id === targetId);
@@ -146,6 +225,57 @@ const App: React.FC = () => {
       }
   }, [notes]);
 
+  // Keyboard Shortcuts Integration
+  useGlobalShortcuts({
+    onNewNote: handleCreateNote,
+    onSave: () => {
+        saveNotes(notesRef.current); // Force immediate save
+    },
+    onFocusSearch: () => {
+        const el = document.getElementById('sidebar-search');
+        if (el) el.focus();
+        if (!isSidebarOpen) setIsSidebarOpen(true);
+    },
+    onArchiveNote: () => {
+        if (activeNoteId) {
+            handleArchiveNote(activeNoteId);
+        }
+    },
+    onDeleteForever: () => {
+        if (activeNoteId) {
+            if (window.confirm("Permanently delete active note? This cannot be undone.")) {
+                handleDeleteForever(activeNoteId);
+            }
+        }
+    },
+    onSwitchNote: (index: number) => {
+        const available = notes.filter(n => !n.archived);
+        if (available[index]) {
+            setActiveNoteId(available[index].id);
+        }
+    },
+    onShowShortcuts: () => setIsShortcutsOpen(true),
+    onEscape: () => {
+        setIsShortcutsOpen(false);
+        setIsSyncOpen(false);
+        setIsChatOpen(false);
+        setIsSidebarOpen(false);
+        setIsExportOpen(false);
+    },
+    onExport: () => {
+        if (activeNoteId) setIsExportOpen(true);
+    }
+  });
+
+  if (!isStorageReady) {
+      return (
+          <div className="h-screen w-full bg-[#050505] flex flex-col items-center justify-center text-[#00ff9d]">
+              <ICONS.Atom />
+              <p className="mt-4 font-mono text-sm tracking-widest animate-pulse">RECALLING MEMORY BLOCKS...</p>
+          </div>
+      );
+  }
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#050505] text-gray-200 selection:bg-[#00ff9d] selection:text-black flex-col md:flex-row">
       
@@ -155,7 +285,7 @@ const App: React.FC = () => {
               <ICONS.Menu />
           </button>
           <h1 className="text-xl font-bold tracking-tighter text-[#00ff9d] neon-text">VOID</h1>
-          <div className="w-5"></div> {/* Spacer for center alignment */}
+          <div className="w-5"></div>
       </div>
 
       {/* Sidebar - Mobile Drawer / Desktop Sidebar */}
@@ -169,10 +299,14 @@ const App: React.FC = () => {
             activeNoteId={activeNoteId} 
             onSelectNote={handleSelectNote} 
             onCreateNote={handleCreateNote}
-            onDeleteNote={handleDeleteNote}
+            onDeleteNote={handleDeleteForever}
+            onUpdateNote={handleUpdateNote}
+            onArchiveNote={handleArchiveNote}
+            onRestoreNote={handleRestoreNote}
             onOpenChat={() => { setIsChatOpen(true); setIsSidebarOpen(false); }}
             onToggleLive={() => { setView(v => v === 'live' ? 'editor' : 'live'); setIsSidebarOpen(false); }}
             onOpenSync={() => { setIsSyncOpen(true); setIsSidebarOpen(false); }}
+            onShowShortcuts={() => { setIsShortcutsOpen(true); setIsSidebarOpen(false); }}
             onFuseNotes={handleFuseNotes}
             currentView={view}
             isOpen={isSidebarOpen}
@@ -180,7 +314,6 @@ const App: React.FC = () => {
           />
       </div>
 
-      {/* Mobile Backdrop */}
       {isSidebarOpen && (
           <div 
             className="fixed inset-0 bg-black/80 z-30 md:hidden backdrop-blur-sm"
@@ -190,6 +323,7 @@ const App: React.FC = () => {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col h-full relative overflow-hidden">
+        {/* Fusion Effect */}
         {isFusing && (
             <div className="absolute inset-0 z-50 bg-black/90 flex flex-col items-center justify-center backdrop-blur-md">
                 <div className="relative">
@@ -203,14 +337,30 @@ const App: React.FC = () => {
             </div>
         )}
 
+        {/* Genesis Effect */}
+        {isGenesis && (
+            <div className="absolute inset-0 z-50 pointer-events-none flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px]">
+                 <div className="flex flex-col items-center gap-4 animate-bounce-in">
+                    <div className="text-[#00ff9d] drop-shadow-[0_0_15px_rgba(0,255,157,0.8)]">
+                        <ICONS.Sparkle width="48" height="48" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-white tracking-[0.5em] uppercase neon-text">Genesis Complete</h2>
+                 </div>
+            </div>
+        )}
+
         {view === 'editor' && activeNote ? (
           <Editor 
             note={activeNote} 
+            allNotes={notes}
             onUpdate={(updates) => handleUpdateNote(activeNote.id, updates)} 
+            onSelectNote={handleSelectNote}
+            onExport={() => setIsExportOpen(true)}
+            onOpenChat={() => setIsChatOpen(true)}
           />
         ) : view === 'editor' && !activeNote ? (
           <div className="flex-1 flex items-center justify-center text-gray-600">
-            <p>Initializing Void...</p>
+            <p>Select a note to begin.</p>
           </div>
         ) : (
           <LiveSession 
@@ -224,6 +374,14 @@ const App: React.FC = () => {
             onClose={() => setIsChatOpen(false)} 
             contextNote={activeNote}
             notes={notes}
+            onUpdateNote={handleUpdateNote}
+            onSwitchNote={handleSelectNote}
+            onCreateNote={handleCreateNoteWithContent}
+            onBatchTagUpdate={handleBatchTagUpdate}
+            onArchiveNote={handleArchiveNote}
+            onDeleteNote={handleDeleteForever}
+            onFuseNotes={handleFuseNotes}
+            onChangeView={setView}
           />
         )}
 
@@ -237,6 +395,17 @@ const App: React.FC = () => {
             }}
           />
         )}
+
+        {isExportOpen && activeNote && (
+            <ExportModal 
+                note={activeNote} 
+                onClose={() => setIsExportOpen(false)} 
+            />
+        )}
+
+        {isShortcutsOpen && (
+            <KeyboardShortcutsModal onClose={() => setIsShortcutsOpen(false)} />
+        )}
       </main>
       
       <style>{`
@@ -247,6 +416,14 @@ const App: React.FC = () => {
         }
         .animate-indeterminate-progress {
             animation: indeterminate-progress 1.5s infinite linear;
+        }
+        @keyframes bounce-in {
+            0% { transform: scale(0.8); opacity: 0; }
+            60% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-bounce-in {
+            animation: bounce-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
       `}</style>
     </div>

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Note, AppView } from '../types';
 import { ICONS } from '../constants';
-import { formatTime, NOTE_TEMPLATES, getTagColor } from '../utils';
+import { formatTime, NOTE_TEMPLATES, getTagColor, getDailyPrompt } from '../utils';
 
 interface SidebarProps {
   notes: Note[];
@@ -40,8 +40,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [isTemplateOpen, setIsTemplateOpen] = useState(false);
   const [sortBy, setSortBy] = useState<'updated' | 'created' | 'alphabetical' | 'size'>('updated');
   const [isSortOpen, setIsSortOpen] = useState(false);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+  const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
   const templateRef = useRef<HTMLDivElement>(null);
   const sortRef = useRef<HTMLDivElement>(null);
+
+  const storageSize = useMemo(() => {
+    const jsonStr = JSON.stringify(notes);
+    const bytes = new Blob([jsonStr]).size;
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }, [notes]);
+
+  const noteCount = notes.filter(n => !n.archived && !n.trashedAt).length;
+  const archivedCount = notes.filter(n => n.archived && !n.trashedAt).length;
+  const trashedCount = notes.filter(n => !!n.trashedAt).length;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -141,7 +155,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
       }
   };
 
+  const toggleNoteSelection = (id: string) => {
+    setSelectedNoteIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const handleNoteClick = (id: string) => {
+      if (isMultiSelectMode) {
+        toggleNoteSelection(id);
+        return;
+      }
       if (isFusionMode) {
           if (!fusionSourceId) {
               setFusionSourceId(id);
@@ -246,6 +273,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             )}
           </div>
+          <button
+            onClick={() => { setIsMultiSelectMode(!isMultiSelectMode); setSelectedNoteIds(new Set()); }}
+            className={`px-3 py-2 border border-[#333] rounded transition-all flex items-center justify-center ${isMultiSelectMode ? 'bg-[#002b1f] border-[#00ff9d] text-[#00ff9d]' : 'bg-[#1a1a1a] hover:border-[#00ff9d] text-gray-400 hover:text-[#00ff9d]'}`}
+            title="Multi-select"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+          </button>
         </div>
 
         {/* Tag Filter Bar */}
@@ -310,9 +344,65 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {fusionSourceId ? "Select Target" : "Select Source"}
             </div>
         )}
+
+        <button 
+          onClick={() => {
+            const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+            const prompt = getDailyPrompt();
+            onCreateNoteFromTemplate(
+              `Journal — ${today}`,
+              `## ${today}\n\n**Prompt:** *${prompt}*\n\n`
+            );
+          }}
+          className="w-full flex items-center gap-2 px-3 py-2 mt-2 mb-2 text-sm text-gray-400 hover:text-[#ffd93d] bg-[#1a1a1a] border border-[#333] rounded hover:border-[#ffd93d] transition-all"
+        >
+          <span>📔</span>
+          <span className="flex-1 text-left">Daily Journal</span>
+          <span className="text-[10px] text-gray-600 truncate max-w-[120px]">{getDailyPrompt().substring(0, 25)}...</span>
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto">
+        {isMultiSelectMode && selectedNoteIds.size > 0 && (
+          <div className="flex items-center gap-2 p-2 bg-[#0a0a0a] border-b border-[#1a1a1a]">
+            <span className="text-[10px] text-[#00ff9d] font-mono">{selectedNoteIds.size} selected</span>
+            <button
+              onClick={() => {
+                const allSelected = activeNotes.every(n => selectedNoteIds.has(n.id));
+                if (allSelected) {
+                  setSelectedNoteIds(new Set());
+                } else {
+                  setSelectedNoteIds(new Set(activeNotes.map(n => n.id)));
+                }
+              }}
+              className="px-2 py-1 text-[10px] text-gray-400 hover:text-[#00ff9d] transition-colors"
+            >
+              {activeNotes.every(n => selectedNoteIds.has(n.id)) ? 'Deselect All' : 'Select All'}
+            </button>
+            <div className="flex-1"></div>
+            <button 
+              onClick={() => { selectedNoteIds.forEach(id => onArchiveNote(id)); setSelectedNoteIds(new Set()); setIsMultiSelectMode(false); }}
+              className="px-2 py-1 text-[10px] text-gray-400 hover:text-white border border-[#333] rounded hover:border-gray-400 transition-colors"
+              title="Archive selected"
+            >
+              <ICONS.Archive />
+            </button>
+            <button 
+              onClick={() => { selectedNoteIds.forEach(id => onTrashNote(id)); setSelectedNoteIds(new Set()); setIsMultiSelectMode(false); }}
+              className="px-2 py-1 text-[10px] text-red-500/70 hover:text-red-400 border border-[#333] rounded hover:border-red-500/50 transition-colors"
+              title="Trash selected"
+            >
+              <ICONS.Trash />
+            </button>
+            <button 
+              onClick={() => { setSelectedNoteIds(new Set()); }}
+              className="px-2 py-1 text-[10px] text-gray-500 hover:text-white transition-colors"
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
         {/* Active Notes List */}
         {activeNotes.length === 0 && !search && (
             <div className="p-8 text-center text-gray-600 text-xs uppercase tracking-widest">No active signals</div>
@@ -339,8 +429,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-2 max-w-[70%]">
-                     {idx < 9 && <span className="text-[9px] font-mono text-gray-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity">^{idx + 1}</span>}
-                     <h3 className={`font-bold truncate ${activeNoteId === note.id ? 'text-[#00ff9d]' : 'text-gray-300'} ${dragOverId === note.id ? 'animate-pulse' : ''}`}>
+                     {isMultiSelectMode && (
+                       <input 
+                         type="checkbox" 
+                         checked={selectedNoteIds.has(note.id)}
+                         onChange={() => toggleNoteSelection(note.id)}
+                         onClick={(e) => e.stopPropagation()}
+                         className="accent-[#00ff9d] w-4 h-4 shrink-0"
+                       />
+                     )}
+                     {idx < 9 && !isMultiSelectMode && <span className="text-[9px] font-mono text-gray-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity">^{idx + 1}</span>}
+                     <h3 className={`font-bold truncate ${activeNoteId === note.id ? 'text-[#00ff9d]' : 'text-gray-300'} ${dragOverId === note.id ? 'animate-pulse' : ''} ${isMultiSelectMode && selectedNoteIds.has(note.id) ? 'text-[#00ff9d]' : ''}`}>
                         {note.title || 'Untitled'}
                      </h3>
                   </div>
@@ -523,15 +622,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
       </div>
 
-      <div className="p-4 border-t border-[#1a1a1a] flex gap-2">
-        <button onClick={onOpenChat} className="flex-1 flex items-center justify-center gap-2 bg-[#00ff9d] text-black font-bold py-3 rounded hover:bg-[#00cc7d] transition-colors shadow-[0_0_10px_rgba(0,255,157,0.3)]">
-            <ICONS.Chat /> AI Assistant
-        </button>
-        {onShowShortcuts && (
-            <button onClick={onShowShortcuts} className="w-12 flex items-center justify-center bg-[#1a1a1a] border border-[#333] rounded hover:border-[#00ff9d] hover:text-[#00ff9d] transition-colors" title="Shortcuts (Ctrl+/)">
-                <ICONS.Keyboard />
-            </button>
-        )}
+      <div className="p-4 border-t border-[#1a1a1a]">
+        <div className="flex justify-between items-center text-[10px] text-gray-600 font-mono mb-3 px-1">
+          <span>{noteCount} notes{archivedCount > 0 ? ` · ${archivedCount} archived` : ''}{trashedCount > 0 ? ` · ${trashedCount} trashed` : ''}</span>
+          <span>{storageSize}</span>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={onOpenChat} className="flex-1 flex items-center justify-center gap-2 bg-[#00ff9d] text-black font-bold py-3 rounded hover:bg-[#00cc7d] transition-colors shadow-[0_0_10px_rgba(0,255,157,0.3)]">
+              <ICONS.Chat /> AI Assistant
+          </button>
+          {onShowShortcuts && (
+              <button onClick={onShowShortcuts} className="w-12 flex items-center justify-center bg-[#1a1a1a] border border-[#333] rounded hover:border-[#00ff9d] hover:text-[#00ff9d] transition-colors" title="Shortcuts (Ctrl+/)">
+                  <ICONS.Keyboard />
+              </button>
+          )}
+        </div>
       </div>
       <style>{`.no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }`}</style>
     </aside>

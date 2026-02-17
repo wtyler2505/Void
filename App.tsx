@@ -484,7 +484,7 @@ const App: React.FC = () => {
         {view === 'editor' && !isFusing && !isGenesis && (
           <div className="fixed bottom-6 right-6 z-30">
             {isQuickCaptureOpen && (
-              <div className="absolute bottom-16 right-0 w-80 bg-[#111] border border-[#333] rounded-lg shadow-2xl shadow-black/80 p-4" onKeyDown={(e) => { if (e.key === 'Escape') setIsQuickCaptureOpen(false); }}>
+              <div className="absolute bottom-16 right-0 w-[calc(100vw-3rem)] md:w-80 bg-[#111] border border-[#333] rounded-lg shadow-2xl shadow-black/80 p-4" onKeyDown={(e) => { if (e.key === 'Escape') setIsQuickCaptureOpen(false); }}>
                 <input
                   type="text"
                   value={quickCaptureTitle}

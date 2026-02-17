@@ -73,6 +73,46 @@ export const formatTime = (ms: number) => {
   });
 };
 
+export const JOURNAL_PROMPTS = [
+  "What are you grateful for today?",
+  "What's one thing you learned today?",
+  "Describe a challenge you faced and how you handled it.",
+  "What made you smile today?",
+  "What are your top 3 priorities for today?",
+  "Reflect on a recent accomplishment.",
+  "What's something you'd like to improve?",
+  "Describe your ideal day.",
+  "What's weighing on your mind right now?",
+  "Write about a person who inspired you recently.",
+  "What would you tell your past self?",
+  "What's a goal you're working toward?",
+  "Describe a moment of peace you experienced recently.",
+  "What's something new you'd like to try?",
+  "Write about your favorite memory this week.",
+  "What boundaries do you need to set?",
+  "What does success look like for you right now?",
+  "Describe something beautiful you noticed today.",
+  "What habits are serving you well?",
+  "What would you do if you couldn't fail?",
+  "What are you looking forward to?",
+  "Write about a mistake and what it taught you.",
+  "How are you feeling right now, honestly?",
+  "What's one small thing you can do today to improve your life?",
+  "Describe a moment where you felt truly alive.",
+  "What do you need to let go of?",
+  "What's something you've been putting off?",
+  "Write a letter to your future self.",
+  "What's your current mood in three words?",
+  "What are you curious about right now?",
+  "What's the best advice you've ever received?",
+];
+
+export const getDailyPrompt = (): string => {
+  const today = new Date();
+  const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000);
+  return JOURNAL_PROMPTS[dayOfYear % JOURNAL_PROMPTS.length];
+};
+
 export const getTagColor = (tag: string): string => {
   let hash = 0;
   for (let i = 0; i < tag.length; i++) {

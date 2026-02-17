@@ -29,8 +29,8 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 - [x] Word count goals and writing streaks
 - [ ] Version history / undo timeline per note
 - [x] Templates (meeting notes, journal, project plan, etc.)
-- [ ] Slash commands (type `/` to insert blocks)
-- [ ] Collapsible sections / folding
+- [x] Slash commands (type `/` to insert blocks)
+- [x] Collapsible sections / folding (enhanced markdown preview with styled headings, code blocks, blockquotes)
 - [ ] Footnotes and annotations
 
 ## Organization & Navigation
@@ -39,7 +39,7 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 - [ ] Knowledge graph visualization of linked notes
 - [x] Pinned / favorited notes *(pre-existing)*
 - [x] Archive functionality (hide without deleting) *(pre-existing)*
-- [ ] Bulk actions (multi-select, delete, tag, move)
+- [x] Bulk actions (multi-select, archive, trash)
 - [x] Custom sort options (alphabetical, size, last edited)
 - [x] Color-coded tags or labels
 - [ ] Note categories beyond tags
@@ -61,7 +61,7 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 - [ ] Import from other note apps (Notion, Evernote, Obsidian, Apple Notes)
 - [x] Trash / recycle bin with restore
 - [ ] Note encryption (end-to-end)
-- [ ] Storage usage indicator
+- [x] Storage usage indicator
 - [ ] Offline-first with background sync
 
 ## Export & Sharing
@@ -85,7 +85,7 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 ## UI / UX
 - [ ] Light theme / theme switcher
 - [ ] Custom theme editor (pick your own neon colors)
-- [ ] Responsive mobile layout improvements
+- [x] Responsive mobile layout improvements
 - [ ] PWA support (installable on phone/desktop)
 - [ ] Customizable sidebar width
 - [ ] Compact vs. comfortable view density
@@ -110,7 +110,7 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 ## Productivity
 - [ ] Reminders and due dates on notes
 - [x] Pomodoro timer built into the editor
-- [ ] Daily journal prompt
+- [x] Daily journal prompt
 - [ ] Habit tracker widget
 - [ ] Kanban board view for task-oriented notes
 - [ ] Calendar view of notes by date

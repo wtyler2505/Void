@@ -53,6 +53,10 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
   const [linkSuggestions, setLinkSuggestions] = useState<Note[]>([]);
   const [selectedLinkIndex, setSelectedLinkIndex] = useState(0);
 
+  const [showSlashMenu, setShowSlashMenu] = useState(false);
+  const [slashQuery, setSlashQuery] = useState('');
+  const [selectedSlashIndex, setSelectedSlashIndex] = useState(0);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -268,9 +272,39 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
     } else {
       setShowLinkSuggest(false);
     }
+
+    const currentLine = textBeforeCursor.split('\n').pop() || '';
+    if (currentLine.startsWith('/') && !showLinkSuggest) {
+      const query = currentLine.substring(1).toLowerCase();
+      setSlashQuery(query);
+      setShowSlashMenu(true);
+      setSelectedSlashIndex(0);
+    } else {
+      setShowSlashMenu(false);
+    }
   };
 
   const handleLinkKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (showSlashMenu && filteredSlashCommands.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedSlashIndex(prev => Math.min(prev + 1, filteredSlashCommands.length - 1));
+        return;
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedSlashIndex(prev => Math.max(prev - 1, 0));
+        return;
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        insertSlashCommand(filteredSlashCommands[selectedSlashIndex]);
+        return;
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowSlashMenu(false);
+        return;
+      }
+    }
+
     if (!showLinkSuggest) return;
 
     if (e.key === 'ArrowDown') {
@@ -312,6 +346,52 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
       if (textarea) {
         textarea.focus();
         textarea.setSelectionRange(newPos, newPos);
+      }
+    }, 0);
+  };
+
+  const SLASH_COMMANDS = [
+    { id: 'h1', label: 'Heading 1', icon: 'H1', insert: '# ' },
+    { id: 'h2', label: 'Heading 2', icon: 'H2', insert: '## ' },
+    { id: 'h3', label: 'Heading 3', icon: 'H3', insert: '### ' },
+    { id: 'bullet', label: 'Bullet List', icon: '•', insert: '- ' },
+    { id: 'numbered', label: 'Numbered List', icon: '1.', insert: '1. ' },
+    { id: 'checklist', label: 'Checklist', icon: '☑', insert: '- [ ] ' },
+    { id: 'code', label: 'Code Block', icon: '<>', insert: '```\n\n```' },
+    { id: 'quote', label: 'Blockquote', icon: '❝', insert: '> ' },
+    { id: 'divider', label: 'Divider', icon: '—', insert: '---\n' },
+    { id: 'table', label: 'Table', icon: '⊞', insert: '| Column 1 | Column 2 | Column 3 |\n| --- | --- | --- |\n|  |  |  |\n' },
+    { id: 'image', label: 'Image', icon: '🖼', insert: '![Alt text](url)' },
+    { id: 'link', label: 'Link', icon: '🔗', insert: '[Link text](url)' },
+  ];
+
+  const filteredSlashCommands = SLASH_COMMANDS.filter(cmd =>
+    cmd.label.toLowerCase().includes(slashQuery) || cmd.id.includes(slashQuery)
+  );
+
+  const insertSlashCommand = (command: typeof SLASH_COMMANDS[0]) => {
+    const textarea = textareaRef.current || zenTextareaRef.current;
+    if (!textarea) return;
+
+    const cursorPos = textarea.selectionStart;
+    const content = note.content;
+    const textBeforeCursor = content.substring(0, cursorPos);
+    const lineStart = textBeforeCursor.lastIndexOf('\n') + 1;
+    const textAfterCursor = content.substring(cursorPos);
+
+    const newContent = content.substring(0, lineStart) + command.insert + textAfterCursor;
+    onUpdate({ content: newContent });
+    triggerSaveVisual();
+    setShowSlashMenu(false);
+
+    setTimeout(() => {
+      const ref = textareaRef.current || zenTextareaRef.current;
+      if (ref) {
+        const newPos = lineStart + command.insert.length;
+        const codeBlockOffset = command.id === 'code' ? -4 : 0;
+        ref.selectionStart = newPos + codeBlockOffset;
+        ref.selectionEnd = newPos + codeBlockOffset;
+        ref.focus();
       }
     }, 0);
   };
@@ -558,6 +638,35 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
   };
 
   const markdownComponents = {
+    h1: ({ children }: any) => (
+      <h1 className="text-2xl font-bold text-white mt-6 mb-3 pb-2 border-b border-[#333]">{children}</h1>
+    ),
+    h2: ({ children }: any) => (
+      <h2 className="text-xl font-bold text-[#00ff9d] mt-6 mb-2 pb-1 border-b border-[#1a1a1a] flex items-center gap-2">
+        <span className="text-[10px] text-[#00ff9d]/50">§</span>
+        {children}
+      </h2>
+    ),
+    h3: ({ children }: any) => (
+      <h3 className="text-lg font-bold text-[#00d2ff] mt-4 mb-1 flex items-center gap-2">
+        <span className="text-[10px] text-[#00d2ff]/50">›</span>
+        {children}
+      </h3>
+    ),
+    code: ({ inline, className, children, ...props }: any) => {
+      if (inline) {
+        return <code className="bg-[#1a1a1a] text-[#ff6b6b] px-1.5 py-0.5 rounded text-sm font-mono" {...props}>{children}</code>;
+      }
+      return (
+        <pre className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg p-4 overflow-x-auto my-4">
+          <code className={`text-sm font-mono text-gray-300 ${className || ''}`} {...props}>{children}</code>
+        </pre>
+      );
+    },
+    blockquote: ({ children }: any) => (
+      <blockquote className="border-l-2 border-[#00ff9d]/30 pl-4 my-4 text-gray-400 italic">{children}</blockquote>
+    ),
+    hr: () => <hr className="border-[#1a1a1a] my-6" />,
     a: ({ href, children }: any) => {
       if (href?.startsWith('void://note/')) {
         const noteId = href.replace('void://note/', '');
@@ -638,15 +747,15 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
             </button>
             {pomodoroActive && (
-              <div className="flex items-center gap-2 px-3 py-1 bg-[#1a1a1a] border border-[#333] rounded ml-2">
-                <span className={`font-mono text-sm font-bold ${pomodoroMode === 'work' ? 'text-[#ff6b6b]' : 'text-[#00ff9d]'}`}>
+              <div className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 bg-[#1a1a1a] border border-[#333] rounded ml-1 md:ml-2">
+                <span className={`font-mono text-xs md:text-sm font-bold ${pomodoroMode === 'work' ? 'text-[#ff6b6b]' : 'text-[#00ff9d]'}`}>
                   {Math.floor(pomodoroTime / 60).toString().padStart(2, '0')}:{(pomodoroTime % 60).toString().padStart(2, '0')}
                 </span>
-                <span className="text-[9px] text-gray-500 uppercase">{pomodoroMode}</span>
-                <button onClick={() => setPomodoroRunning(!pomodoroRunning)} className="text-xs text-gray-400 hover:text-white px-1">
+                <span className="text-[9px] text-gray-500 uppercase hidden md:inline">{pomodoroMode}</span>
+                <button onClick={() => setPomodoroRunning(!pomodoroRunning)} className="text-xs text-gray-400 hover:text-white px-1 min-w-[28px] min-h-[28px] md:min-w-0 md:min-h-0 flex items-center justify-center">
                   {pomodoroRunning ? '⏸' : '▶'}
                 </button>
-                <button onClick={() => { setPomodoroRunning(false); setPomodoroTime(pomodoroMode === 'work' ? 25 * 60 : 5 * 60); }} className="text-xs text-gray-400 hover:text-white px-1">↺</button>
+                <button onClick={() => { setPomodoroRunning(false); setPomodoroTime(pomodoroMode === 'work' ? 25 * 60 : 5 * 60); }} className="text-xs text-gray-400 hover:text-white px-1 min-w-[28px] min-h-[28px] md:min-w-0 md:min-h-0 flex items-center justify-center">↺</button>
               </div>
             )}
             <button onClick={onOpenChat} disabled={isProcessing} className="p-2 rounded hover:bg-[#1a1a1a] text-green-400 hover:text-green-300 disabled:opacity-50" title="Chat Assistant"><ICONS.Chat /></button>
@@ -734,6 +843,21 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
                             </div>
                           ))
                         )}
+                      </div>
+                    )}
+                    {showSlashMenu && filteredSlashCommands.length > 0 && (
+                      <div className="absolute z-50 bg-[#111] border border-[#333] rounded-lg shadow-lg w-64 overflow-hidden max-h-80 overflow-y-auto" style={{ top: '2rem', left: '1rem' }}>
+                        <div className="px-3 py-1.5 text-[10px] text-gray-500 uppercase tracking-widest border-b border-[#222]">Insert Block</div>
+                        {filteredSlashCommands.map((cmd, i) => (
+                          <div
+                            key={cmd.id}
+                            onClick={() => insertSlashCommand(cmd)}
+                            className={`px-3 py-2 flex items-center gap-3 cursor-pointer transition-colors ${i === selectedSlashIndex ? 'bg-[#1a1a1a] text-[#00ff9d]' : 'text-gray-300 hover:bg-[#1a1a1a]'}`}
+                          >
+                            <span className="w-6 text-center text-sm font-mono">{cmd.icon}</span>
+                            <span className="text-sm">{cmd.label}</span>
+                          </div>
+                        ))}
                       </div>
                     )}
                 </div>
@@ -921,6 +1045,21 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
                                 </div>
                               ))
                             )}
+                          </div>
+                        )}
+                        {showSlashMenu && filteredSlashCommands.length > 0 && (
+                          <div className="absolute z-50 bg-[#111] border border-[#333] rounded-lg shadow-lg w-64 overflow-hidden max-h-80 overflow-y-auto" style={{ top: '2rem', left: '1rem' }}>
+                            <div className="px-3 py-1.5 text-[10px] text-gray-500 uppercase tracking-widest border-b border-[#222]">Insert Block</div>
+                            {filteredSlashCommands.map((cmd, i) => (
+                              <div
+                                key={cmd.id}
+                                onClick={() => insertSlashCommand(cmd)}
+                                className={`px-3 py-2 flex items-center gap-3 cursor-pointer transition-colors ${i === selectedSlashIndex ? 'bg-[#1a1a1a] text-[#00ff9d]' : 'text-gray-300 hover:bg-[#1a1a1a]'}`}
+                              >
+                                <span className="w-6 text-center text-sm font-mono">{cmd.icon}</span>
+                                <span className="text-sm">{cmd.label}</span>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>

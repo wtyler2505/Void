@@ -15,6 +15,7 @@ import * as Gemini from './services/gemini';
 import { ICONS } from './constants';
 import { useTheme } from './ThemeContext';
 import { Onboarding } from './components/Onboarding';
+import { VoidLogo } from './components/VoidLogo';
 import KanbanBoard from './components/KanbanBoard';
 import CalendarView from './components/CalendarView';
 import { Folder } from './types';
@@ -433,9 +434,9 @@ const App: React.FC = () => {
 
   if (!isStorageReady) {
       return (
-          <div className={`h-screen w-full ${isDark ? 'bg-[#050505]' : 'bg-[#f5f5f0]'} flex flex-col items-center justify-center text-[#00ff9d]`}>
-              <ICONS.Atom />
-              <p className="mt-4 font-mono text-sm tracking-widest animate-pulse">RECALLING MEMORY BLOCKS...</p>
+          <div className={`h-screen w-full ${isDark ? 'bg-[#050505]' : 'bg-[#f5f5f0]'} flex flex-col items-center justify-center`}>
+              <VoidLogo size={80} animated />
+              <p className="mt-6 font-mono text-sm tracking-widest animate-pulse" style={{ color: accentColor }}>RECALLING MEMORY BLOCKS...</p>
           </div>
       );
   }
@@ -448,7 +449,7 @@ const App: React.FC = () => {
           <button onClick={() => setIsSidebarOpen(true)} className="text-[#00ff9d]">
               <ICONS.Menu />
           </button>
-          <h1 className="text-xl font-bold tracking-tighter text-[#00ff9d] neon-text">VOID</h1>
+          <VoidLogo size={22} showText textSize="text-lg" />
           <div className="w-5"></div>
       </div>
 

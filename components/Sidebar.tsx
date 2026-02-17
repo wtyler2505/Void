@@ -3,6 +3,7 @@ import { Note, AppView, Folder } from '../types';
 import { ICONS } from '../constants';
 import { formatTime, NOTE_TEMPLATES, getTagColor, getDailyPrompt } from '../utils';
 import { useTheme } from '../ThemeContext';
+import { VoidLogo } from './VoidLogo';
 
 interface SidebarProps {
   notes: Note[];
@@ -252,7 +253,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Header */}
       <div className={`p-4 border-b ${isDark ? 'border-[#1a1a1a]' : 'border-gray-200'}`}>
         <div className="flex justify-between items-center mb-4">
-            <h1 className="text-3xl font-bold tracking-tighter neon-text hidden md:block" style={{ color: accentColor }}>VOID</h1>
+            <div className="hidden md:block"><VoidLogo size={30} showText textSize="text-2xl" /></div>
             {/* Mobile Close Button */}
             <div className="md:hidden flex items-center gap-2 text-[#00ff9d] font-bold">
                  <ICONS.Sparkle /> MENU

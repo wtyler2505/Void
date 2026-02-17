@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { VoidLogo } from './VoidLogo';
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -68,8 +69,8 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
       <div className="relative w-full max-w-md mx-4 animate-scale-in">
         <div className="bg-[#111] border border-[#333]  p-8 shadow-[0_0_60px_rgba(0,255,157,0.1)]">
-          <div className="text-center mb-6">
-            <span className="text-4xl">{current.icon}</span>
+          <div className="flex justify-center mb-6">
+            {step === 0 ? <VoidLogo size={56} animated /> : <span className="text-4xl">{current.icon}</span>}
           </div>
           <h2 className="text-xl font-bold text-white text-center mb-3 tracking-wide">{current.title}</h2>
           <p className="text-gray-400 text-center text-sm leading-relaxed mb-8">{current.description}</p>

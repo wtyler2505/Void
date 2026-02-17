@@ -80,7 +80,7 @@ VOID is a React-based note-taking application with a dark, cyberpunk-inspired UI
 - Embeddable links with preview cards (favicon + domain display)
 
 ## Design
-- Cyberpunk aesthetic: #00ff9d primary, #050505 background, JetBrains Mono font
+- Cyberpunk aesthetic: #00ff9d primary, #050505 background, Space Grotesk (UI) + JetBrains Mono (code)
 - Dark/Light theme switcher with preserved green accent
 - Sharp corners throughout (no rounded corners, cyberpunk angular aesthetic)
 

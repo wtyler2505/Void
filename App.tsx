@@ -34,6 +34,9 @@ const App: React.FC = () => {
   const [isGenesis, setIsGenesis] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isQuickCaptureOpen, setIsQuickCaptureOpen] = useState(false);
+  const [quickCaptureTitle, setQuickCaptureTitle] = useState('Quick Note');
+  const [quickCaptureContent, setQuickCaptureContent] = useState('');
 
   const notesRef = useRef(notes);
   useEffect(() => { notesRef.current = notes; }, [notes]);
@@ -46,8 +49,8 @@ const App: React.FC = () => {
             setNotes(loaded);
             // Ensure valid active ID
             const savedId = localStorage.getItem('void_active_note');
-            if (!savedId || !loaded.find(n => n.id === savedId && !n.archived)) {
-                const available = loaded.filter(n => !n.archived);
+            if (!savedId || !loaded.find(n => n.id === savedId && !n.archived && !n.trashedAt)) {
+                const available = loaded.filter(n => !n.archived && !n.trashedAt);
                 if (available.length > 0) {
                     setActiveNoteId(available[0].id);
                 } else {
@@ -147,7 +150,7 @@ const App: React.FC = () => {
     // Only switch selection if we deleted the active note or if no notes left
     if (id === activeNoteId || remaining.length === 0) {
         // Filter out archived for selection logic
-        const available = remaining.filter(n => !n.archived);
+        const available = remaining.filter(n => !n.archived && !n.trashedAt);
         if (available.length > 0) {
             setActiveNoteId(available[0].id);
         } else {
@@ -165,11 +168,10 @@ const App: React.FC = () => {
       
       // If we archived the active note, switch to another
       if (id === activeNoteId) {
-          const available = notes.filter(n => n.id !== id && !n.archived);
+          const available = notes.filter(n => n.id !== id && !n.archived && !n.trashedAt);
           if (available.length > 0) {
               setActiveNoteId(available[0].id);
           } else {
-              // Create new note if all are archived
               const fresh = createNewNote();
               setNotes(prev => [fresh, ...prev]);
               setActiveNoteId(fresh.id);
@@ -180,6 +182,57 @@ const App: React.FC = () => {
   const handleRestoreNote = useCallback((id: string) => {
       handleUpdateNote(id, { archived: false, archivedAt: undefined });
   }, [handleUpdateNote]);
+
+  const handleTrashNote = useCallback((id: string) => {
+      handleUpdateNote(id, { trashedAt: Date.now(), archived: false });
+      
+      if (id === activeNoteId) {
+          const available = notes.filter(n => n.id !== id && !n.archived && !n.trashedAt);
+          if (available.length > 0) {
+              setActiveNoteId(available[0].id);
+          } else {
+              const fresh = createNewNote();
+              setNotes(prev => [fresh, ...prev]);
+              setActiveNoteId(fresh.id);
+          }
+      }
+  }, [notes, activeNoteId, handleUpdateNote]);
+
+  const handleRestoreFromTrash = useCallback((id: string) => {
+      handleUpdateNote(id, { trashedAt: undefined });
+  }, [handleUpdateNote]);
+
+  const handleEmptyTrash = useCallback(() => {
+      const trashedIds = notes.filter(n => n.trashedAt).map(n => n.id);
+      if (trashedIds.length === 0) return;
+      
+      let nextNotes = notes.filter(n => !n.trashedAt);
+      
+      if (activeNoteId && trashedIds.includes(activeNoteId)) {
+          const available = nextNotes.filter(n => !n.archived);
+          if (available.length > 0) {
+              setActiveNoteId(available[0].id);
+          } else {
+              const fresh = createNewNote();
+              nextNotes = [fresh, ...nextNotes];
+              setActiveNoteId(fresh.id);
+          }
+      }
+      
+      setNotes(nextNotes);
+  }, [notes, activeNoteId]);
+
+  const handleQuickCapture = useCallback(() => {
+    if (!quickCaptureContent.trim()) return;
+    const newNote = createNewNote();
+    newNote.title = quickCaptureTitle.trim() || 'Quick Note';
+    newNote.content = quickCaptureContent;
+    setNotes(prev => [newNote, ...prev]);
+    setActiveNoteId(newNote.id);
+    setIsQuickCaptureOpen(false);
+    setQuickCaptureTitle('Quick Note');
+    setQuickCaptureContent('');
+  }, [quickCaptureTitle, quickCaptureContent]);
 
   const handleSelectNote = (id: string) => {
       setActiveNoteId(id);
@@ -251,7 +304,7 @@ const App: React.FC = () => {
         }
     },
     onSwitchNote: (index: number) => {
-        const available = notes.filter(n => !n.archived);
+        const available = notes.filter(n => !n.archived && !n.trashedAt);
         if (available[index]) {
             setActiveNoteId(available[index].id);
         }
@@ -308,6 +361,9 @@ const App: React.FC = () => {
             onUpdateNote={handleUpdateNote}
             onArchiveNote={handleArchiveNote}
             onRestoreNote={handleRestoreNote}
+            onTrashNote={handleTrashNote}
+            onRestoreFromTrash={handleRestoreFromTrash}
+            onEmptyTrash={handleEmptyTrash}
             onOpenChat={() => { setIsChatOpen(true); setIsSidebarOpen(false); }}
             onToggleLive={() => { setView(v => v === 'live' ? 'editor' : 'live'); setIsSidebarOpen(false); }}
             onOpenSync={() => { setIsSyncOpen(true); setIsSidebarOpen(false); }}
@@ -424,6 +480,46 @@ const App: React.FC = () => {
           onShowShortcuts={() => setIsShortcutsOpen(true)}
           onOpenSync={() => setIsSyncOpen(true)}
         />
+
+        {view === 'editor' && !isFusing && !isGenesis && (
+          <div className="fixed bottom-6 right-6 z-30">
+            {isQuickCaptureOpen && (
+              <div className="absolute bottom-16 right-0 w-80 bg-[#111] border border-[#333] rounded-lg shadow-2xl shadow-black/80 p-4" onKeyDown={(e) => { if (e.key === 'Escape') setIsQuickCaptureOpen(false); }}>
+                <input
+                  type="text"
+                  value={quickCaptureTitle}
+                  onChange={(e) => setQuickCaptureTitle(e.target.value)}
+                  className="w-full bg-[#1a1a1a] border border-[#333] text-white text-sm rounded px-3 py-1.5 mb-3 focus:outline-none focus:border-[#00ff9d]"
+                  placeholder="Title"
+                />
+                <textarea
+                  value={quickCaptureContent}
+                  onChange={(e) => setQuickCaptureContent(e.target.value)}
+                  className="w-full bg-[#1a1a1a] border border-[#333] text-gray-300 text-sm rounded px-3 py-2 mb-3 focus:outline-none focus:border-[#00ff9d] resize-none"
+                  rows={4}
+                  autoFocus
+                  placeholder="Capture your thought..."
+                  onKeyDown={(e) => { if (e.key === 'Escape') setIsQuickCaptureOpen(false); }}
+                />
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => setIsQuickCaptureOpen(false)} className="text-gray-400 hover:text-white text-sm px-3 py-2 rounded transition-colors">Cancel</button>
+                  <button onClick={handleQuickCapture} className="bg-[#00ff9d] text-black font-bold rounded px-4 py-2 text-sm hover:bg-[#00e68a] transition-colors">Save</button>
+                </div>
+              </div>
+            )}
+            <button
+              onClick={() => setIsQuickCaptureOpen(!isQuickCaptureOpen)}
+              className="w-12 h-12 rounded-full bg-[#00ff9d] text-black shadow-[0_0_20px_rgba(0,255,157,0.4)] hover:shadow-[0_0_30px_rgba(0,255,157,0.6)] flex items-center justify-center transition-all hover:scale-110"
+              title="Quick Capture"
+            >
+              <ICONS.Bolt />
+            </button>
+          </div>
+        )}
+
+        {isQuickCaptureOpen && view === 'editor' && (
+          <div className="fixed inset-0 z-20" onClick={() => setIsQuickCaptureOpen(false)}></div>
+        )}
       </main>
       
       <style>{`

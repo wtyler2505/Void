@@ -22,7 +22,7 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 - [ ] Drag-and-drop image embedding
 - [ ] Drawing / sketching canvas within notes
 - [ ] Tables support (insert and edit tables)
-- [ ] Checklists / to-do lists with progress tracking
+- [x] Checklists / to-do lists with progress tracking
 - [ ] Embeddable links with preview cards
 - [ ] Split-pane editing (two notes side by side)
 - [x] Focus / zen mode (distraction-free writing)
@@ -35,7 +35,7 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 
 ## Organization & Navigation
 - [ ] Folders / nested folder structure
-- [ ] Note linking (wiki-style `[[note]]` links between notes)
+- [x] Note linking (wiki-style `[[note]]` links between notes)
 - [ ] Knowledge graph visualization of linked notes
 - [x] Pinned / favorited notes *(pre-existing)*
 - [x] Archive functionality (hide without deleting) *(pre-existing)*
@@ -59,7 +59,7 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 - [ ] Full-text search with database indexing
 - [ ] Automatic cloud backup on a schedule
 - [ ] Import from other note apps (Notion, Evernote, Obsidian, Apple Notes)
-- [ ] Trash / recycle bin with restore
+- [x] Trash / recycle bin with restore
 - [ ] Note encryption (end-to-end)
 - [ ] Storage usage indicator
 - [ ] Offline-first with background sync
@@ -68,7 +68,7 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 - [ ] Export to PDF with styled formatting
 - [ ] Export to DOCX (Word)
 - [x] Export to HTML
-- [ ] Print-friendly view
+- [x] Print-friendly view
 - [ ] Email a note directly
 - [ ] Publish notes as a blog / public page
 - [ ] RSS feed of published notes
@@ -109,12 +109,12 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 
 ## Productivity
 - [ ] Reminders and due dates on notes
-- [ ] Pomodoro timer built into the editor
+- [x] Pomodoro timer built into the editor
 - [ ] Daily journal prompt
 - [ ] Habit tracker widget
 - [ ] Kanban board view for task-oriented notes
 - [ ] Calendar view of notes by date
-- [ ] Quick capture — floating button to jot down ideas fast
+- [x] Quick capture — floating button to jot down ideas fast
 - [ ] Markdown shortcuts cheat sheet toggle
 
 ## Performance & Technical

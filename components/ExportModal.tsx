@@ -112,6 +112,66 @@ ${note.attachments.length > 0 ? `**Attachments:** ${note.attachments.length} fil
     return html;
   };
 
+  const handlePrint = () => {
+    const printContent = markdownToHtml(note.content);
+    const tagsStr = note.tags.map(t => `#${escapeHtml(t)}`).join(' ');
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    
+    printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <title>${escapeHtml(note.title)}</title>
+  <style>
+    @media print {
+      body { margin: 0; padding: 20px; }
+    }
+    body {
+      font-family: 'Georgia', 'Times New Roman', serif;
+      line-height: 1.8;
+      color: #222;
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    h1 { font-size: 28px; margin-bottom: 8px; border-bottom: 2px solid #333; padding-bottom: 8px; }
+    h2 { font-size: 22px; margin-top: 24px; }
+    h3 { font-size: 18px; }
+    p { margin: 12px 0; }
+    code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 14px; }
+    pre { background: #f4f4f4; padding: 16px; border-radius: 6px; overflow-x: auto; }
+    pre code { background: none; padding: 0; }
+    blockquote { border-left: 3px solid #ccc; margin: 16px 0; padding: 8px 16px; color: #555; }
+    ul, ol { padding-left: 24px; }
+    li { margin: 4px 0; }
+    img { max-width: 100%; }
+    .meta { color: #888; font-size: 13px; margin-bottom: 20px; }
+    .tags { color: #666; font-size: 12px; margin-bottom: 16px; }
+    .tags span { background: #eee; padding: 2px 8px; border-radius: 10px; margin-right: 6px; }
+    hr { border: none; border-top: 1px solid #ddd; margin: 24px 0; }
+    @media print {
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <h1>${escapeHtml(note.title)}</h1>
+  <div class="meta">
+    Created: ${new Date(note.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · 
+    Updated: ${new Date(note.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+  </div>
+  ${tagsStr ? `<div class="tags">${note.tags.map(t => `<span>#${escapeHtml(t)}</span>`).join(' ')}</div>` : ''}
+  <hr>
+  ${printContent}
+  <script>
+    window.onload = function() { window.print(); };
+  <\/script>
+</body>
+</html>`);
+    printWindow.document.close();
+  };
+
   const handleDownloadHTML = () => {
     const contentHtml = markdownToHtml(note.content);
     const tagsHtml = note.tags.length > 0 ? `<p><strong>Tags:</strong> ${note.tags.map(t => `<span style="background: #00ff9d; color: #050505; padding: 2px 6px; border-radius: 3px; margin: 0 4px; font-size: 12px; font-weight: bold;">#${escapeHtml(t)}</span>`).join(' ')}</p>` : '';
@@ -247,6 +307,14 @@ ${note.attachments.length > 0 ? `**Attachments:** ${note.attachments.length} fil
             >
                 <ICONS.FileCode className="w-6 h-6 text-gray-400 group-hover:text-[#00ff9d]" />
                 <span className="text-sm font-bold">HTML File</span>
+            </button>
+
+            <button 
+                onClick={handlePrint}
+                className="flex flex-col items-center justify-center p-4 bg-[#111] border border-[#333] rounded hover:border-[#00ff9d] hover:bg-[#002b1f] hover:text-[#00ff9d] transition-all gap-2 group"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-gray-400 group-hover:text-[#00ff9d]"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                <span className="text-sm font-bold">Print</span>
             </button>
         </div>
         

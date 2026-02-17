@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Note, Attachment } from '../types';
 import { ICONS } from '../constants';
 import * as Gemini from '../services/gemini';
@@ -41,10 +42,22 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
   const [streak, setStreak] = useState(0);
   const [longestStreak, setLongestStreak] = useState(0);
 
+  const [pomodoroActive, setPomodoroActive] = useState(false);
+  const [pomodoroTime, setPomodoroTime] = useState(25 * 60);
+  const [pomodoroRunning, setPomodoroRunning] = useState(false);
+  const [pomodoroMode, setPomodoroMode] = useState<'work' | 'break'>('work');
+  const [pomodoroAlert, setPomodoroAlert] = useState(false);
+
+  const [showLinkSuggest, setShowLinkSuggest] = useState(false);
+  const [linkQuery, setLinkQuery] = useState('');
+  const [linkSuggestions, setLinkSuggestions] = useState<Note[]>([]);
+  const [selectedLinkIndex, setSelectedLinkIndex] = useState(0);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const streakTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const checkboxCounterRef = useRef(0);
 
   // Auto-resize textarea
   useLayoutEffect(() => {
@@ -68,6 +81,28 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
   useEffect(() => {
       setCurrentTime(Date.now());
   }, [note.updatedAt]);
+
+  useEffect(() => {
+    if (!pomodoroRunning) return;
+    const interval = setInterval(() => {
+      setPomodoroTime(prev => {
+        if (prev <= 1) {
+          setPomodoroRunning(false);
+          setPomodoroAlert(true);
+          setTimeout(() => setPomodoroAlert(false), 3000);
+          if (pomodoroMode === 'work') {
+            setPomodoroMode('break');
+            return 5 * 60;
+          } else {
+            setPomodoroMode('work');
+            return 25 * 60;
+          }
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [pomodoroRunning, pomodoroMode]);
 
   // Close Haunt panel when switching notes to avoid confusion
   useEffect(() => {
@@ -212,8 +247,84 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     triggerSaveVisual();
-    onUpdate({ content: e.target.value });
+    const value = e.target.value;
+    onUpdate({ content: value });
+
+    const cursorPos = e.target.selectionStart;
+    const textBeforeCursor = value.substring(0, cursorPos);
+    const lastOpen = textBeforeCursor.lastIndexOf('[[');
+    const lastClose = textBeforeCursor.lastIndexOf(']]');
+
+    if (lastOpen !== -1 && lastOpen > lastClose) {
+      const query = textBeforeCursor.substring(lastOpen + 2);
+      setLinkQuery(query);
+      const filtered = allNotes
+        .filter(n => !n.archived && !n.trashedAt && n.id !== note.id)
+        .filter(n => n.title.toLowerCase().includes(query.toLowerCase().trim()))
+        .slice(0, 5);
+      setLinkSuggestions(filtered);
+      setSelectedLinkIndex(0);
+      setShowLinkSuggest(true);
+    } else {
+      setShowLinkSuggest(false);
+    }
   };
+
+  const handleLinkKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!showLinkSuggest) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedLinkIndex(prev => Math.min(prev + 1, linkSuggestions.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedLinkIndex(prev => Math.max(prev - 1, 0));
+    } else if (e.key === 'Enter' && linkSuggestions.length > 0) {
+      e.preventDefault();
+      insertLinkSuggestion(linkSuggestions[selectedLinkIndex]);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setShowLinkSuggest(false);
+    }
+  };
+
+  const insertLinkSuggestion = (selectedNote: Note) => {
+    const textarea = textareaRef.current || zenTextareaRef.current;
+    if (!textarea) return;
+
+    const cursorPos = textarea.selectionStart;
+    const content = note.content;
+    const textBeforeCursor = content.substring(0, cursorPos);
+    const lastOpen = textBeforeCursor.lastIndexOf('[[');
+
+    if (lastOpen === -1) return;
+
+    const before = content.substring(0, lastOpen);
+    const after = content.substring(cursorPos);
+    const newContent = `${before}[[${selectedNote.title}]]${after}`;
+
+    onUpdate({ content: newContent });
+    triggerSaveVisual();
+    setShowLinkSuggest(false);
+
+    setTimeout(() => {
+      const newPos = lastOpen + selectedNote.title.length + 4;
+      if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(newPos, newPos);
+      }
+    }, 0);
+  };
+
+  const processNoteLinks = useCallback((content: string): string => {
+    return content.replace(/\[\[([^\]]+)\]\]/g, (_match, title) => {
+      const linked = allNotes.find(n => n.title.toLowerCase() === title.toLowerCase().trim() && !n.archived && !n.trashedAt);
+      if (linked) {
+        return `[${title}](void://note/${linked.id})`;
+      }
+      return `~~${title}~~`;
+    });
+  }, [allNotes]);
 
   const handleSummarize = async () => {
     setIsProcessing(true);
@@ -416,6 +527,74 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
   const wordCount = note.content.trim().split(/\s+/).filter(Boolean).length;
   const charCount = note.content.length;
   const readTime = Math.ceil(wordCount / 200);
+
+  const checkboxMatches = note.content.match(/^\s*[-*]\s\[([ x])\]/gim) || [];
+  const totalChecks = checkboxMatches.length;
+  const checkedCount = checkboxMatches.filter(m => /\[x\]/i.test(m)).length;
+
+  const toggleCheckbox = (checkboxIndex: number) => {
+    const lines = note.content.split('\n');
+    let count = 0;
+    const newLines = lines.map(line => {
+      const unchecked = /^(\s*[-*]\s)\[ \](.*)$/.exec(line);
+      const checked = /^(\s*[-*]\s)\[x\](.*)$/i.exec(line);
+      if (unchecked) {
+        if (count === checkboxIndex) {
+          count++;
+          return `${unchecked[1]}[x]${unchecked[2]}`;
+        }
+        count++;
+      } else if (checked) {
+        if (count === checkboxIndex) {
+          count++;
+          return `${checked[1]}[ ]${checked[2]}`;
+        }
+        count++;
+      }
+      return line;
+    });
+    onUpdate({ content: newLines.join('\n') });
+    triggerSaveVisual();
+  };
+
+  const markdownComponents = {
+    a: ({ href, children }: any) => {
+      if (href?.startsWith('void://note/')) {
+        const noteId = href.replace('void://note/', '');
+        return (
+          <button
+            onClick={(e: React.MouseEvent) => { e.preventDefault(); onSelectNote(noteId); }}
+            className="text-[#00ff9d] hover:text-white underline decoration-[#00ff9d]/50 hover:decoration-white cursor-pointer transition-colors font-bold"
+          >
+            {children}
+          </button>
+        );
+      }
+      return <a href={href} target="_blank" rel="noopener noreferrer" className="text-[#00d2ff] hover:text-white underline">{children}</a>;
+    },
+    input: ({ type, checked, ...props }: any) => {
+      if (type === 'checkbox') {
+        const idx = checkboxCounterRef.current++;
+        return (
+          <input
+            type="checkbox"
+            checked={!!checked}
+            onChange={() => toggleCheckbox(idx)}
+            className="accent-[#00ff9d] mr-2 cursor-pointer w-4 h-4"
+          />
+        );
+      }
+      return <input type={type} {...props} />;
+    },
+    li: ({ children, className, ...props }: any) => {
+      const isTask = className?.includes('task-list-item');
+      return (
+        <li className={`${isTask ? 'list-none flex items-start gap-1' : ''} ${className || ''}`} {...props}>
+          {children}
+        </li>
+      );
+    },
+  };
   
   const getSaveStatusText = () => {
       if (saveStatus === 'saving') return 'Saving...';
@@ -435,6 +614,12 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
         </div>
       )}
 
+      {pomodoroAlert && (
+        <div className="absolute top-12 left-1/2 -translate-x-1/2 bg-[#ff6b6b] text-white px-4 py-2 rounded font-bold text-sm animate-bounce z-50 shadow-lg shadow-red-500/30">
+          {pomodoroMode === 'break' ? '☕ Break Time!' : '🔥 Focus Time!'}
+        </div>
+      )}
+
       <div className="flex items-center gap-2 p-3 border-b border-[#1a1a1a] bg-[#0a0a0a] overflow-x-auto z-20 no-scrollbar relative">
          <button onClick={toggleRecording} className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all ${isRecording ? 'bg-red-500 text-white animate-pulse' : 'bg-[#1a1a1a] text-gray-400 hover:text-[#00ff9d] border border-[#333]'}`}>
           <ICONS.Mic /> {isRecording ? 'STOP' : 'REC'}
@@ -449,6 +634,21 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
             <button onClick={() => setShowPreview(!showPreview)} className={`p-2 rounded hover:bg-[#1a1a1a] transition-colors ${showPreview ? 'text-[#00ff9d]' : 'text-gray-400'}`} title="Toggle Preview"><ICONS.Columns /></button>
             <button onClick={toggleHaunt} disabled={isProcessing} className={`p-2 rounded hover:bg-[#1a1a1a] transition-colors disabled:opacity-50 ${showHauntPanel ? 'text-[#ff00ff] bg-[#1a051a]' : 'text-gray-400 hover:text-[#ff00ff]'}`} title="Haunt (Find Related)"><ICONS.Ghost /></button>
             <button onClick={() => setIsZenMode(true)} className="p-2 rounded hover:bg-[#1a1a1a] text-gray-400 hover:text-[#00ff9d] transition-colors" title="Focus Mode"><ICONS.Focus /></button>
+            <button onClick={() => setPomodoroActive(!pomodoroActive)} className={`p-2 rounded hover:bg-[#1a1a1a] transition-colors ${pomodoroActive ? 'text-[#ff6b6b]' : 'text-gray-400 hover:text-[#ff6b6b]'}`} title="Pomodoro Timer">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </button>
+            {pomodoroActive && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-[#1a1a1a] border border-[#333] rounded ml-2">
+                <span className={`font-mono text-sm font-bold ${pomodoroMode === 'work' ? 'text-[#ff6b6b]' : 'text-[#00ff9d]'}`}>
+                  {Math.floor(pomodoroTime / 60).toString().padStart(2, '0')}:{(pomodoroTime % 60).toString().padStart(2, '0')}
+                </span>
+                <span className="text-[9px] text-gray-500 uppercase">{pomodoroMode}</span>
+                <button onClick={() => setPomodoroRunning(!pomodoroRunning)} className="text-xs text-gray-400 hover:text-white px-1">
+                  {pomodoroRunning ? '⏸' : '▶'}
+                </button>
+                <button onClick={() => { setPomodoroRunning(false); setPomodoroTime(pomodoroMode === 'work' ? 25 * 60 : 5 * 60); }} className="text-xs text-gray-400 hover:text-white px-1">↺</button>
+              </div>
+            )}
             <button onClick={onOpenChat} disabled={isProcessing} className="p-2 rounded hover:bg-[#1a1a1a] text-green-400 hover:text-green-300 disabled:opacity-50" title="Chat Assistant"><ICONS.Chat /></button>
             <button onClick={onExport} disabled={isProcessing} className="p-2 rounded hover:bg-[#1a1a1a] text-gray-400 hover:text-white disabled:opacity-50" title="Export"><ICONS.Download /></button>
         </div>
@@ -510,18 +710,40 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
             )}
 
             <div className={`flex flex-col md:flex-row gap-6 ${showPreview ? '' : ''}`}>
-                <div className={`transition-all duration-300 ${showPreview ? 'w-full md:w-1/2' : 'w-full'}`}>
+                <div className={`transition-all duration-300 relative ${showPreview ? 'w-full md:w-1/2' : 'w-full'}`}>
                     <textarea 
                       ref={textareaRef}
                       value={note.content}
                       onChange={handleContentChange}
+                      onKeyDown={handleLinkKeyDown}
                       placeholder="Scream into the void..."
                       className="w-full bg-transparent text-base md:text-lg text-gray-300 resize-none focus:outline-none min-h-[50vh] leading-relaxed font-mono pb-20"
                     />
+                    {showLinkSuggest && (
+                      <div className="absolute z-50 bg-[#111] border border-[#333] rounded shadow-lg max-w-xs w-64 overflow-hidden" style={{ top: '2rem', left: '1rem' }}>
+                        {linkSuggestions.length === 0 ? (
+                          <div className="px-3 py-2 text-sm text-gray-500 italic">No matches</div>
+                        ) : (
+                          linkSuggestions.map((s, i) => (
+                            <div
+                              key={s.id}
+                              onClick={() => insertLinkSuggestion(s)}
+                              className={`px-3 py-2 text-sm cursor-pointer transition-colors ${i === selectedLinkIndex ? 'bg-[#1a1a1a] text-[#00ff9d]' : 'text-gray-300 hover:bg-[#1a1a1a]'}`}
+                            >
+                              {s.title}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
                 </div>
                 {showPreview && (
                     <div className="w-full md:w-1/2 min-h-[50vh] border-t md:border-t-0 md:border-l border-[#333] pt-4 md:pt-0 md:pl-6 markdown-preview animate-fade-in">
-                        <ReactMarkdown>{note.content}</ReactMarkdown>
+                        {(() => { checkboxCounterRef.current = 0; return null; })()}
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={markdownComponents}
+                        >{processNoteLinks(note.content)}</ReactMarkdown>
                     </div>
                 )}
             </div>
@@ -565,6 +787,19 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
                       <span>{Math.round((wordCount / wordGoal) * 100)}%</span>
                     </span>
                   )}
+                </>
+              )}
+              {totalChecks > 0 && (
+                <>
+                  <span className="w-[1px] h-3 bg-[#333]"></span>
+                  <span className="flex items-center gap-1.5">
+                    <span className={checkedCount === totalChecks ? 'text-[#00ff9d]' : ''}>
+                      {checkedCount}/{totalChecks} tasks
+                    </span>
+                    <span className="w-12 h-1 bg-[#333] rounded-full overflow-hidden">
+                      <span className="block h-full bg-[#00ff9d] rounded-full transition-all duration-300" style={{ width: `${(checkedCount / totalChecks) * 100}%` }}></span>
+                    </span>
+                  </span>
                 </>
               )}
               {streak > 0 && (
@@ -662,13 +897,33 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
                         placeholder="Void Entry"
                         className="w-full bg-transparent text-2xl md:text-4xl font-bold text-white focus:outline-none placeholder-gray-700 font-mono mb-6"
                       />
-                      <textarea
-                        ref={zenTextareaRef}
-                        value={note.content}
-                        onChange={handleContentChange}
-                        placeholder="Scream into the void..."
-                        className="w-full bg-transparent text-base md:text-lg text-gray-300 resize-none focus:outline-none min-h-[70vh] leading-relaxed font-mono pb-20"
-                      />
+                      <div className="relative">
+                        <textarea
+                          ref={zenTextareaRef}
+                          value={note.content}
+                          onChange={handleContentChange}
+                          onKeyDown={handleLinkKeyDown}
+                          placeholder="Scream into the void..."
+                          className="w-full bg-transparent text-base md:text-lg text-gray-300 resize-none focus:outline-none min-h-[70vh] leading-relaxed font-mono pb-20"
+                        />
+                        {showLinkSuggest && (
+                          <div className="absolute z-50 bg-[#111] border border-[#333] rounded shadow-lg max-w-xs w-64 overflow-hidden" style={{ top: '2rem', left: '1rem' }}>
+                            {linkSuggestions.length === 0 ? (
+                              <div className="px-3 py-2 text-sm text-gray-500 italic">No matches</div>
+                            ) : (
+                              linkSuggestions.map((s, i) => (
+                                <div
+                                  key={s.id}
+                                  onClick={() => insertLinkSuggestion(s)}
+                                  className={`px-3 py-2 text-sm cursor-pointer transition-colors ${i === selectedLinkIndex ? 'bg-[#1a1a1a] text-[#00ff9d]' : 'text-gray-300 hover:bg-[#1a1a1a]'}`}
+                                >
+                                  {s.title}
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </div>
                   </div>
               </div>
               <div className="shrink-0 w-full p-3 flex justify-center">

@@ -56,7 +56,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   }, [actions, query]);
 
   const filteredNotes = useMemo(() => {
-    const available = notes.filter(n => !n.archived);
+    const available = notes.filter(n => !n.archived && !n.trashedAt);
     if (!query) return available;
     const q = query.toLowerCase();
     return available.filter(n => n.title.toLowerCase().includes(q));

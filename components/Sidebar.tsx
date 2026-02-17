@@ -13,6 +13,9 @@ interface SidebarProps {
   onUpdateNote: (id: string, updates: Partial<Note>) => void;
   onArchiveNote: (id: string) => void;
   onRestoreNote: (id: string) => void;
+  onTrashNote: (id: string) => void;
+  onRestoreFromTrash: (id: string) => void;
+  onEmptyTrash: () => void;
   onOpenChat: () => void;
   onToggleLive: () => void;
   onOpenSync: () => void;
@@ -24,7 +27,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
-  notes, activeNoteId, onSelectNote, onCreateNote, onCreateNoteFromTemplate, onDeleteNote, onUpdateNote, onArchiveNote, onRestoreNote, onOpenChat, onToggleLive, onOpenSync, onFuseNotes, onShowShortcuts, currentView, isOpen, onClose 
+  notes, activeNoteId, onSelectNote, onCreateNote, onCreateNoteFromTemplate, onDeleteNote, onUpdateNote, onArchiveNote, onRestoreNote, onTrashNote, onRestoreFromTrash, onEmptyTrash, onOpenChat, onToggleLive, onOpenSync, onFuseNotes, onShowShortcuts, currentView, isOpen, onClose 
 }) => {
   const [search, setSearch] = useState('');
   const [tagFilter, setTagFilter] = useState<string | null>(null);
@@ -33,6 +36,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [fusionSourceId, setFusionSourceId] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState('');
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
+  const [isTrashOpen, setIsTrashOpen] = useState(false);
   const [isTemplateOpen, setIsTemplateOpen] = useState(false);
   const [sortBy, setSortBy] = useState<'updated' | 'created' | 'alphabetical' | 'size'>('updated');
   const [isSortOpen, setIsSortOpen] = useState(false);
@@ -57,11 +61,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // Collect all unique tags
   const allTags = useMemo(() => {
     const tags = new Set<string>();
-    notes.filter(n => !n.archived).forEach(n => n.tags.forEach(t => tags.add(t)));
+    notes.filter(n => !n.archived && !n.trashedAt).forEach(n => n.tags.forEach(t => tags.add(t)));
     return Array.from(tags).sort();
   }, [notes]);
 
-  const { activeNotes, archivedNotes } = useMemo(() => {
+  const { activeNotes, archivedNotes, trashedNotes } = useMemo(() => {
     let res = [...notes];
     
     // 1. Tag Filter
@@ -79,9 +83,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       );
     }
 
-    // Split into active and archived
-    const active = res.filter(n => !n.archived);
-    const archived = res.filter(n => n.archived);
+    // Split into active, archived, and trashed
+    const active = res.filter(n => !n.archived && !n.trashedAt);
+    const archived = res.filter(n => n.archived && !n.trashedAt);
+    const trashed = res.filter(n => !!n.trashedAt);
 
     // Sort Active: Pinned first, then by selected sort
     active.sort((a, b) => {
@@ -107,7 +112,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     // Sort Archived: Most recently archived/updated first
     archived.sort((a, b) => (b.archivedAt || b.updatedAt) - (a.archivedAt || a.updatedAt));
 
-    return { activeNotes: active, archivedNotes: archived };
+    // Sort Trashed: Most recently trashed first
+    trashed.sort((a, b) => (b.trashedAt || b.updatedAt) - (a.trashedAt || a.updatedAt));
+
+    return { activeNotes: active, archivedNotes: archived, trashedNotes: trashed };
   }, [notes, search, tagFilter, sortBy]);
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
@@ -446,9 +454,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     <ICONS.Restore />
                                 </button>
                                 <button 
-                                    onClick={(e) => { e.stopPropagation(); onDeleteNote(note.id); }}
+                                    onClick={(e) => { e.stopPropagation(); onTrashNote(note.id); }}
                                     className="p-1 text-gray-500 hover:text-red-500"
-                                    title="Delete Permanently"
+                                    title="Move to Trash"
                                 >
                                     <ICONS.Trash />
                                 </button>
@@ -457,6 +465,60 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <p className="text-[10px] text-gray-600 truncate">{note.content.substring(0, 40) || 'Empty...'}</p>
                     </div>
                 ))}
+            </div>
+        )}
+
+        {trashedNotes.length > 0 && (
+            <div className="mt-4 border-t border-[#1a1a1a]">
+                <button 
+                    onClick={() => setIsTrashOpen(!isTrashOpen)}
+                    className="w-full flex items-center justify-between p-3 text-xs text-red-500/70 hover:text-red-400 hover:bg-[#111] transition-colors uppercase tracking-wider"
+                >
+                    <span className="flex items-center gap-2"><ICONS.Trash className="w-3.5 h-3.5" /> Trash ({trashedNotes.length})</span>
+                    <span className={`transform transition-transform ${isTrashOpen ? 'rotate-180' : ''}`}>▼</span>
+                </button>
+                
+                {isTrashOpen && (
+                    <>
+                        <button
+                            onClick={() => {
+                                if (window.confirm('Permanently delete all trashed notes? This cannot be undone.')) {
+                                    onEmptyTrash();
+                                }
+                            }}
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-[10px] text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors uppercase tracking-widest border-b border-[#1a1a1a]"
+                        >
+                            <ICONS.Trash className="w-3 h-3" /> Empty Trash
+                        </button>
+                        {trashedNotes.map(note => (
+                            <div 
+                                key={note.id}
+                                className="group p-3 border-b border-[#111] bg-[#0c0c0c] hover:bg-[#111] relative flex flex-col gap-1 opacity-60 hover:opacity-100 transition-all cursor-default"
+                            >
+                                <div className="flex justify-between items-center">
+                                    <h3 className="font-bold text-gray-400 truncate text-sm">{note.title || 'Untitled'}</h3>
+                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); onRestoreFromTrash(note.id); }}
+                                            className="p-1 text-gray-500 hover:text-[#00ff9d]"
+                                            title="Restore"
+                                        >
+                                            <ICONS.Restore />
+                                        </button>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); if (window.confirm('Permanently delete this note? This cannot be undone.')) { onDeleteNote(note.id); } }}
+                                            className="p-1 text-gray-500 hover:text-red-500"
+                                            title="Delete Permanently"
+                                        >
+                                            <ICONS.Trash />
+                                        </button>
+                                    </div>
+                                </div>
+                                <p className="text-[10px] text-gray-600 truncate">{note.content.substring(0, 40) || 'Empty...'}</p>
+                            </div>
+                        ))}
+                    </>
+                )}
             </div>
         )}
       </div>

@@ -9,6 +9,7 @@ export interface Note {
   pinned?: boolean;
   archived?: boolean;
   archivedAt?: number;
+  trashedAt?: number;
 }
 
 export interface Attachment {

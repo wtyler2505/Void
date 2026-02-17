@@ -12,6 +12,12 @@ export interface Note {
   trashedAt?: number;
 }
 
+export interface NoteVersion {
+  timestamp: number;
+  title: string;
+  content: string;
+}
+
 export interface Attachment {
   id: string;
   type: 'image' | 'video' | 'audio';

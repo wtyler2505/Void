@@ -18,7 +18,7 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 
 ## Editor Enhancements
 - [ ] Full rich text / WYSIWYG editing (bold, italic, headings via toolbar)
-- [ ] Code syntax highlighting in code blocks
+- [x] Code syntax highlighting in code blocks
 - [ ] Drag-and-drop image embedding
 - [ ] Drawing / sketching canvas within notes
 - [ ] Tables support (insert and edit tables)
@@ -27,11 +27,11 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 - [ ] Split-pane editing (two notes side by side)
 - [x] Focus / zen mode (distraction-free writing)
 - [x] Word count goals and writing streaks
-- [ ] Version history / undo timeline per note
+- [x] Version history / undo timeline per note
 - [x] Templates (meeting notes, journal, project plan, etc.)
 - [x] Slash commands (type `/` to insert blocks)
 - [x] Collapsible sections / folding (enhanced markdown preview with styled headings, code blocks, blockquotes)
-- [ ] Footnotes and annotations
+- [x] Footnotes and annotations
 
 ## Organization & Navigation
 - [ ] Folders / nested folder structure
@@ -43,7 +43,7 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 - [x] Custom sort options (alphabetical, size, last edited)
 - [x] Color-coded tags or labels
 - [ ] Note categories beyond tags
-- [ ] Recent notes / quick access panel
+- [x] Recent notes / quick access panel
 
 ## Collaboration
 - [ ] Real-time collaborative editing (multiple users in one note)
@@ -115,7 +115,7 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 - [ ] Kanban board view for task-oriented notes
 - [ ] Calendar view of notes by date
 - [x] Quick capture — floating button to jot down ideas fast
-- [ ] Markdown shortcuts cheat sheet toggle
+- [x] Markdown shortcuts cheat sheet toggle
 
 ## Performance & Technical
 - [ ] Lazy loading for large note collections

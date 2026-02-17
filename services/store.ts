@@ -1,13 +1,14 @@
-import { Note } from '../types';
+import { Note, NoteVersion } from '../types';
 
 const DB_NAME = 'void_db';
 const STORE_NAME = 'void_store';
-const DB_VERSION = 1;
+const VERSION_STORE = 'void_versions';
+const DB_VERSION = 2;
 const IDB_KEY = 'void_notes_data';
 const LS_KEY = 'void_notes_data';
-const LEGACY_KEYS = ['void_data', 'void_notes']; // Keys from potential previous versions
+const LEGACY_KEYS = ['void_data', 'void_notes'];
+const MAX_VERSIONS_PER_NOTE = 50;
 
-// Helper to open DB
 const openDB = (): Promise<IDBDatabase> => {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -19,6 +20,9 @@ const openDB = (): Promise<IDBDatabase> => {
             const db = (event.target as IDBOpenDBRequest).result;
             if (!db.objectStoreNames.contains(STORE_NAME)) {
                 db.createObjectStore(STORE_NAME);
+            }
+            if (!db.objectStoreNames.contains(VERSION_STORE)) {
+                db.createObjectStore(VERSION_STORE);
             }
         };
     });
@@ -107,6 +111,50 @@ export const loadNotes = async (): Promise<Note[]> => {
     }
 
     return notes || [];
+};
+
+export const saveNoteVersion = async (noteId: string, title: string, content: string) => {
+    try {
+        const db = await openDB();
+        const tx = db.transaction(VERSION_STORE, 'readwrite');
+        const store = tx.objectStore(VERSION_STORE);
+        
+        const existing = await new Promise<NoteVersion[]>((resolve, reject) => {
+            const req = store.get(noteId);
+            req.onsuccess = () => resolve(req.result || []);
+            req.onerror = () => reject(req.error);
+        });
+        
+        if (existing.length > 0 && existing[existing.length - 1].content === content) return;
+        
+        const newVersion: NoteVersion = { timestamp: Date.now(), title, content };
+        const versions = [...existing, newVersion].slice(-MAX_VERSIONS_PER_NOTE);
+        
+        store.put(versions, noteId);
+        
+        return new Promise<void>((resolve, reject) => {
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        });
+    } catch (e) {
+        console.error("Failed to save version", e);
+    }
+};
+
+export const loadNoteVersions = async (noteId: string): Promise<NoteVersion[]> => {
+    try {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(VERSION_STORE, 'readonly');
+            const store = tx.objectStore(VERSION_STORE);
+            const req = store.get(noteId);
+            req.onsuccess = () => resolve(req.result || []);
+            req.onerror = () => reject(req.error);
+        });
+    } catch (e) {
+        console.error("Failed to load versions", e);
+        return [];
+    }
 };
 
 export const createBlobFromBase64 = (base64: string, mimeType: string) => {

@@ -363,6 +363,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div className="flex-1 overflow-y-auto">
+        {activeNotes.length > 3 && (
+          <div className="px-4 py-2 border-b border-[#111]">
+            <div className="text-[10px] text-gray-600 uppercase tracking-widest mb-1.5">Recent</div>
+            <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
+              {[...activeNotes].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 5).map(n => (
+                <button
+                  key={n.id}
+                  onClick={() => onSelectNote(n.id)}
+                  className={`shrink-0 px-2.5 py-1 rounded text-[10px] border transition-all truncate max-w-[120px] ${
+                    activeNoteId === n.id 
+                      ? 'bg-[#00ff9d]/10 border-[#00ff9d]/50 text-[#00ff9d]' 
+                      : 'bg-[#111] border-[#222] text-gray-400 hover:border-[#333] hover:text-gray-300'
+                  }`}
+                >
+                  {n.title || 'Untitled'}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {isMultiSelectMode && selectedNoteIds.size > 0 && (
           <div className="flex items-center gap-2 p-2 bg-[#0a0a0a] border-b border-[#1a1a1a]">
             <span className="text-[10px] text-[#00ff9d] font-mono">{selectedNoteIds.size} selected</span>

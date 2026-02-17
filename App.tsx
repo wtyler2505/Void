@@ -3,7 +3,7 @@ import { Sidebar } from './components/Sidebar';
 import { Editor } from './components/Editor';
 import { LiveSession } from './components/LiveSession';
 import { Note, AppView, Attachment } from './types';
-import { saveNotes, loadNotes } from './services/store';
+import { saveNotes, loadNotes, saveNoteVersion } from './services/store';
 import { createNewNote } from './utils';
 import { ChatOverlay } from './components/ChatOverlay';
 import { SyncModal } from './components/SyncModal';
@@ -40,6 +40,8 @@ const App: React.FC = () => {
 
   const notesRef = useRef(notes);
   useEffect(() => { notesRef.current = notes; }, [notes]);
+
+  const versionSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 3. Load from IndexedDB on Mount
   useEffect(() => {
@@ -121,6 +123,11 @@ const App: React.FC = () => {
 
   const handleUpdateNote = useCallback((id: string, updates: Partial<Note>) => {
     setNotes(prev => prev.map(n => n.id === id ? { ...n, ...updates, updatedAt: Date.now() } : n));
+    if (versionSaveRef.current) clearTimeout(versionSaveRef.current);
+    versionSaveRef.current = setTimeout(() => {
+        const note = notesRef.current.find(n => n.id === id);
+        if (note) saveNoteVersion(id, note.title, note.content);
+    }, 30000);
   }, []);
 
   // Global Batch Tag Update for Taxonomy Control
@@ -284,7 +291,9 @@ const App: React.FC = () => {
   useGlobalShortcuts({
     onNewNote: handleCreateNote,
     onSave: () => {
-        saveNotes(notesRef.current); // Force immediate save
+        saveNotes(notesRef.current);
+        const active = notesRef.current.find(n => n.id === activeNoteId);
+        if (active) saveNoteVersion(active.id, active.title, active.content);
     },
     onFocusSearch: () => {
         const el = document.getElementById('sidebar-search');

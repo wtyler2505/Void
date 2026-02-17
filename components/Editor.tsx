@@ -1,9 +1,12 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Note, Attachment } from '../types';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { Note, Attachment, NoteVersion } from '../types';
 import { ICONS } from '../constants';
 import * as Gemini from '../services/gemini';
+import { loadNoteVersions } from '../services/store';
 
 interface EditorProps {
   note: Note;
@@ -23,6 +26,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [showPreview, setShowPreview] = useState(false);
+  const [showCheatSheet, setShowCheatSheet] = useState(false);
   
   const [showVariants, setShowVariants] = useState(false);
   const [variants, setVariants] = useState<string[]>([]);
@@ -56,6 +60,10 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [slashQuery, setSlashQuery] = useState('');
   const [selectedSlashIndex, setSelectedSlashIndex] = useState(0);
+
+  const [showVersions, setShowVersions] = useState(false);
+  const [versions, setVersions] = useState<NoteVersion[]>([]);
+  const [selectedVersion, setSelectedVersion] = useState<NoteVersion | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -108,11 +116,15 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
     return () => clearInterval(interval);
   }, [pomodoroRunning, pomodoroMode]);
 
-  // Close Haunt panel when switching notes to avoid confusion
   useEffect(() => {
       if(showHauntPanel) {
           setShowHauntPanel(false);
           setHauntResults([]);
+      }
+      if(showVersions) {
+          setShowVersions(false);
+          setVersions([]);
+          setSelectedVersion(null);
       }
   }, [note.id]);
 
@@ -397,13 +409,15 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
   };
 
   const processNoteLinks = useCallback((content: string): string => {
-    return content.replace(/\[\[([^\]]+)\]\]/g, (_match, title) => {
+    let processed = content.replace(/\[\[([^\]]+)\]\]/g, (_match, title) => {
       const linked = allNotes.find(n => n.title.toLowerCase() === title.toLowerCase().trim() && !n.archived && !n.trashedAt);
       if (linked) {
         return `[${title}](void://note/${linked.id})`;
       }
       return `~~${title}~~`;
     });
+    processed = processed.replace(/\[\^(\w+)\](?!:)/g, '**^$1**');
+    return processed;
   }, [allNotes]);
 
   const handleSummarize = async () => {
@@ -654,14 +668,37 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
       </h3>
     ),
     code: ({ inline, className, children, ...props }: any) => {
-      if (inline) {
-        return <code className="bg-[#1a1a1a] text-[#ff6b6b] px-1.5 py-0.5 rounded text-sm font-mono" {...props}>{children}</code>;
+      const match = /language-(\w+)/.exec(className || '');
+      if (!inline && match) {
+        return (
+          <SyntaxHighlighter
+            style={vscDarkPlus}
+            language={match[1]}
+            PreTag="div"
+            customStyle={{
+              background: '#0a0a0a',
+              border: '1px solid #1a1a1a',
+              borderRadius: '0.5rem',
+              padding: '1rem',
+              margin: '1rem 0',
+              fontSize: '0.875rem',
+            }}
+            codeTagProps={{
+              style: { fontFamily: "'JetBrains Mono', monospace" }
+            }}
+          >
+            {String(children).replace(/\n$/, '')}
+          </SyntaxHighlighter>
+        );
       }
-      return (
-        <pre className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg p-4 overflow-x-auto my-4">
-          <code className={`text-sm font-mono text-gray-300 ${className || ''}`} {...props}>{children}</code>
-        </pre>
-      );
+      if (!inline) {
+        return (
+          <pre className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg p-4 overflow-x-auto my-4">
+            <code className={`text-sm font-mono text-gray-300 ${className || ''}`} {...props}>{children}</code>
+          </pre>
+        );
+      }
+      return <code className="bg-[#1a1a1a] text-[#ff6b6b] px-1.5 py-0.5 rounded text-sm font-mono" {...props}>{children}</code>;
     },
     blockquote: ({ children }: any) => (
       <blockquote className="border-l-2 border-[#00ff9d]/30 pl-4 my-4 text-gray-400 italic">{children}</blockquote>
@@ -702,6 +739,27 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
           {children}
         </li>
       );
+    },
+    p: ({ children }: any) => {
+      const text = typeof children === 'string' ? children : '';
+      const footnoteMatch = /^\[\^(\w+)\]:\s*(.+)$/.exec(text);
+      if (footnoteMatch) {
+        return (
+          <p className="text-xs text-gray-500 border-l-2 border-[#ffd93d]/30 pl-3 my-1 italic">
+            <span className="text-[#ffd93d] font-bold mr-1">[{footnoteMatch[1]}]</span>
+            {footnoteMatch[2]}
+          </p>
+        );
+      }
+      return <p className="my-2 leading-relaxed">{children}</p>;
+    },
+    strong: ({ children }: any) => {
+      const text = typeof children === 'string' ? children : Array.isArray(children) ? children.join('') : '';
+      const footnoteRef = /^\^(\w+)$/.exec(text);
+      if (footnoteRef) {
+        return <sup className="text-[#ffd93d] text-[10px] cursor-pointer hover:text-white transition-colors">[{footnoteRef[1]}]</sup>;
+      }
+      return <strong className="text-white font-bold">{children}</strong>;
     },
   };
   
@@ -760,6 +818,15 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
             )}
             <button onClick={onOpenChat} disabled={isProcessing} className="p-2 rounded hover:bg-[#1a1a1a] text-green-400 hover:text-green-300 disabled:opacity-50" title="Chat Assistant"><ICONS.Chat /></button>
             <button onClick={onExport} disabled={isProcessing} className="p-2 rounded hover:bg-[#1a1a1a] text-gray-400 hover:text-white disabled:opacity-50" title="Export"><ICONS.Download /></button>
+            <button onClick={async () => {
+              if (showVersions) { setShowVersions(false); return; }
+              const v = await loadNoteVersions(note.id);
+              setVersions(v);
+              setShowVersions(true);
+              setSelectedVersion(null);
+            }} className={`p-2 rounded hover:bg-[#1a1a1a] transition-colors ${showVersions ? 'text-[#ffd93d]' : 'text-gray-400 hover:text-[#ffd93d]'}`} title="Version History">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v5h5"></path><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path><path d="M12 7v5l4 2"></path></svg>
+            </button>
         </div>
         
         <div className="flex-1"></div>
@@ -874,6 +941,36 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
         </div>
       </div>
       
+      {showCheatSheet && (
+        <div className="absolute bottom-10 left-4 z-40 bg-[#111] border border-[#333] rounded-lg shadow-xl p-4 w-72 animate-fade-in">
+          <div className="flex justify-between items-center mb-3">
+            <h4 className="text-xs font-bold text-[#00ff9d] uppercase tracking-wider">Markdown Shortcuts</h4>
+            <button onClick={() => setShowCheatSheet(false)} className="text-gray-500 hover:text-white"><ICONS.Close /></button>
+          </div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[10px] font-mono">
+            <span className="text-gray-500">**bold**</span><span className="text-gray-300 font-bold">bold</span>
+            <span className="text-gray-500">*italic*</span><span className="text-gray-300 italic">italic</span>
+            <span className="text-gray-500">~~strike~~</span><span className="text-gray-300 line-through">strike</span>
+            <span className="text-gray-500"># Heading 1</span><span className="text-gray-300">H1</span>
+            <span className="text-gray-500">## Heading 2</span><span className="text-gray-300">H2</span>
+            <span className="text-gray-500">### Heading 3</span><span className="text-gray-300">H3</span>
+            <span className="text-gray-500">- list item</span><span className="text-gray-300">bullet</span>
+            <span className="text-gray-500">1. item</span><span className="text-gray-300">numbered</span>
+            <span className="text-gray-500">- [ ] task</span><span className="text-gray-300">checklist</span>
+            <span className="text-gray-500">`code`</span><span className="text-gray-300 bg-[#1a1a1a] px-1 rounded">code</span>
+            <span className="text-gray-500">```lang</span><span className="text-gray-300">code block</span>
+            <span className="text-gray-500">&gt; quote</span><span className="text-gray-300">blockquote</span>
+            <span className="text-gray-500">---</span><span className="text-gray-300">divider</span>
+            <span className="text-gray-500">[[note]]</span><span className="text-gray-300">note link</span>
+            <span className="text-gray-500">[text](url)</span><span className="text-gray-300">link</span>
+            <span className="text-gray-500">![alt](url)</span><span className="text-gray-300">image</span>
+          </div>
+          <div className="mt-3 pt-2 border-t border-[#222] text-[10px] text-gray-600">
+            Type <span className="text-[#00ff9d]">/</span> at line start for slash commands
+          </div>
+        </div>
+      )}
+
       <div className="shrink-0 w-full bg-[#0a0a0a] border-t border-[#1a1a1a] p-2 flex justify-between items-center text-[10px] text-gray-500 font-mono select-none opacity-50 hover:opacity-100 transition-opacity">
           <div className="flex gap-4 items-center">
               <span>{wordCount} words</span>
@@ -932,6 +1029,14 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
                   <span title={`Longest streak: ${longestStreak} days`}>🔥 {streak}</span>
                 </>
               )}
+              <span className="w-[1px] h-3 bg-[#333]"></span>
+              <button 
+                onClick={() => setShowCheatSheet(!showCheatSheet)}
+                className={`hover:text-[#00ff9d] transition-colors ${showCheatSheet ? 'text-[#00ff9d]' : ''}`}
+                title="Markdown Cheat Sheet"
+              >
+                MD?
+              </button>
           </div>
           <div className="text-right text-[#00ff9d]" title={new Date(note.updatedAt).toLocaleString()}>
               {getSaveStatusText()}
@@ -982,6 +1087,56 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
                               </div>
                           );
                       })
+                  )}
+              </div>
+          </div>
+      )}
+
+      {showVersions && (
+          <div className="absolute top-[53px] right-0 bottom-0 w-80 bg-[#0a0a0f] border-l border-[#1a1a2a] shadow-[-10px_0_30px_rgba(255,217,61,0.05)] overflow-y-auto z-40 animate-fade-in">
+              <div className="p-4 border-b border-[#1a1a2a] bg-[#0f0f1a] flex justify-between items-center sticky top-0">
+                  <h3 className="text-[#ffd93d] font-bold text-sm tracking-wider flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v5h5"></path><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path><path d="M12 7v5l4 2"></path></svg>
+                      TIMELINE
+                  </h3>
+                  <button onClick={() => setShowVersions(false)} className="text-gray-500 hover:text-[#ffd93d] p-1"><ICONS.Close /></button>
+              </div>
+              <div className="p-4 space-y-2">
+                  {versions.length === 0 ? (
+                      <div className="text-center text-gray-600 text-xs py-10">
+                          <p className="italic">No history yet.</p>
+                          <p className="mt-2 text-[10px]">Versions are saved as you edit.</p>
+                      </div>
+                  ) : (
+                      versions.slice().reverse().map((v, i) => (
+                          <div
+                              key={v.timestamp}
+                              onClick={() => setSelectedVersion(selectedVersion?.timestamp === v.timestamp ? null : v)}
+                              className={`p-3 rounded border cursor-pointer transition-all ${selectedVersion?.timestamp === v.timestamp ? 'border-[#ffd93d] bg-[#1a1a0a]' : 'border-[#1a1a2a] hover:border-[#333] bg-[#0a0a0f]'}`}
+                          >
+                              <div className="flex justify-between items-center">
+                                  <span className="text-xs text-gray-400">{v.title || 'Untitled'}</span>
+                                  <span className="text-[10px] text-gray-600 font-mono">{new Date(v.timestamp).toLocaleString()}</span>
+                              </div>
+                              <p className="text-[10px] text-gray-500 mt-1 truncate">{v.content.substring(0, 80)}...</p>
+                              {selectedVersion?.timestamp === v.timestamp && (
+                                  <div className="mt-2 flex gap-2">
+                                      <button
+                                          onClick={(e) => { e.stopPropagation(); onUpdate({ title: v.title, content: v.content }); setShowVersions(false); }}
+                                          className="px-3 py-1 text-[10px] bg-[#ffd93d] text-black rounded font-bold hover:bg-[#ffe066] transition-colors"
+                                      >
+                                          Restore
+                                      </button>
+                                      <button
+                                          onClick={(e) => { e.stopPropagation(); setSelectedVersion(null); }}
+                                          className="px-3 py-1 text-[10px] text-gray-400 hover:text-white transition-colors"
+                                      >
+                                          Cancel
+                                      </button>
+                                  </div>
+                              )}
+                          </div>
+                      ))
                   )}
               </div>
           </div>

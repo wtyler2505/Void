@@ -21,7 +21,7 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({ 
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
-      <div className="bg-[#0a0a0a] border border-[#00ff9d] w-full max-w-lg rounded shadow-[0_0_50px_rgba(0,255,157,0.1)] overflow-hidden" onClick={e => e.stopPropagation()}>
+      <div className="bg-[#0a0a0a] border border-[#00ff9d] w-full max-w-lg  shadow-[0_0_50px_rgba(0,255,157,0.1)] overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-4 border-b border-[#333] bg-[#050505]">
           <h2 className="text-[#00ff9d] font-bold text-lg flex items-center gap-2">
             <ICONS.Keyboard /> SYSTEM CONTROLS
@@ -31,11 +31,11 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({ 
         
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
           {shortcuts.map((s, i) => (
-            <div key={i} className="flex items-center justify-between bg-[#111] p-3 rounded border border-[#222]">
+            <div key={i} className="flex items-center justify-between bg-[#111] p-3  border border-[#222]">
               <span className="text-gray-300 text-sm font-mono">{s.desc}</span>
               <div className="flex gap-1">
                 {s.keys.map(k => (
-                  <kbd key={k} className="px-2 py-1 bg-[#222] border border-[#333] rounded text-xs font-bold text-[#00ff9d] min-w-[24px] text-center font-mono">
+                  <kbd key={k} className="px-2 py-1 bg-[#222] border border-[#333]  text-xs font-bold text-[#00ff9d] min-w-[24px] text-center font-mono">
                     {k}
                   </kbd>
                 ))}

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Note, AppView } from '../types';
+import { Note, AppView, Folder } from '../types';
 import { ICONS } from '../constants';
 import { formatTime, NOTE_TEMPLATES, getTagColor, getDailyPrompt } from '../utils';
 import { useTheme } from '../ThemeContext';
@@ -19,16 +19,23 @@ interface SidebarProps {
   onEmptyTrash: () => void;
   onOpenChat: () => void;
   onToggleLive: () => void;
+  onToggleKanban: () => void;
+  onToggleCalendar: () => void;
   onOpenSync: () => void;
   onFuseNotes?: (sourceId: string, targetId: string) => void;
   onShowShortcuts?: () => void;
   currentView: AppView;
   isOpen?: boolean;
   onClose?: () => void;
+  folders?: Folder[];
+  activeFolderId?: string | null;
+  onSelectFolder?: (id: string | null) => void;
+  onCreateFolder?: (name: string, parentId?: string) => void;
+  onDeleteFolder?: (id: string) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
-  notes, activeNoteId, onSelectNote, onCreateNote, onCreateNoteFromTemplate, onDeleteNote, onUpdateNote, onArchiveNote, onRestoreNote, onTrashNote, onRestoreFromTrash, onEmptyTrash, onOpenChat, onToggleLive, onOpenSync, onFuseNotes, onShowShortcuts, currentView, isOpen, onClose 
+  notes, activeNoteId, onSelectNote, onCreateNote, onCreateNoteFromTemplate, onDeleteNote, onUpdateNote, onArchiveNote, onRestoreNote, onTrashNote, onRestoreFromTrash, onEmptyTrash, onOpenChat, onToggleLive, onToggleKanban, onToggleCalendar, onOpenSync, onFuseNotes, onShowShortcuts, currentView, isOpen, onClose, folders, activeFolderId, onSelectFolder, onCreateFolder, onDeleteFolder 
 }) => {
   const { isDark, toggleTheme, accentColor, setAccentColor } = useTheme();
   const [search, setSearch] = useState('');
@@ -112,6 +119,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       );
     }
 
+    // 3. Folder Filter
+    if (activeFolderId) {
+      res = res.filter(n => n.folderId === activeFolderId);
+    }
+
     // Split into active, archived, and trashed
     const active = res.filter(n => !n.archived && !n.trashedAt);
     const archived = res.filter(n => n.archived && !n.trashedAt);
@@ -145,7 +157,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     trashed.sort((a, b) => (b.trashedAt || b.updatedAt) - (a.trashedAt || a.updatedAt));
 
     return { activeNotes: active, archivedNotes: archived, trashedNotes: trashed };
-  }, [notes, search, tagFilter, sortBy]);
+  }, [notes, search, tagFilter, sortBy, activeFolderId]);
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
       e.dataTransfer.setData('text/plain', id);
@@ -260,12 +272,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             aria-label="Search notes"
-            className={`flex-1 ${isDark ? 'bg-[#111] border-[#333] text-gray-300' : 'bg-gray-100 border-gray-300 text-gray-700'} border rounded px-3 py-2 text-sm focus:outline-none focus:border-[#00ff9d] transition-colors`}
+            className={`flex-1 ${isDark ? 'bg-[#111] border-[#333] text-gray-300' : 'bg-gray-100 border-gray-300 text-gray-700'} border  px-3 py-2 text-sm focus:outline-none focus:border-[#00ff9d] transition-colors`}
           />
           <div className="relative" ref={sortRef}>
             <button
               onClick={() => setIsSortOpen(!isSortOpen)}
-              className={`px-3 py-2 ${isDark ? 'bg-[#1a1a1a] border-[#333]' : 'bg-gray-100 border-gray-300'} border rounded hover:border-[#00ff9d] transition-all flex items-center justify-center ${isSortOpen ? 'border-[#00ff9d]' : ''}`}
+              className={`px-3 py-2 ${isDark ? 'bg-[#1a1a1a] border-[#333]' : 'bg-gray-100 border-gray-300'} border  hover:border-[#00ff9d] transition-all flex items-center justify-center ${isSortOpen ? 'border-[#00ff9d]' : ''}`}
               title="Sort"
               aria-label="Sort notes"
               aria-expanded={isSortOpen}
@@ -273,7 +285,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <ICONS.Sort className="w-4 h-4" />
             </button>
             {isSortOpen && (
-              <div className={`absolute top-full right-0 mt-1 w-48 ${isDark ? 'bg-[#111] border-[#333] shadow-black/50' : 'bg-white border-gray-200 shadow-gray-300/50'} border rounded shadow-lg z-50 py-1`}>
+              <div className={`absolute top-full right-0 mt-1 w-48 ${isDark ? 'bg-[#111] border-[#333] shadow-black/50' : 'bg-white border-gray-200 shadow-gray-300/50'} border  shadow-lg z-50 py-1`}>
                 <button
                   onClick={() => { setSortBy('updated'); setIsSortOpen(false); }}
                   className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors ${sortBy === 'updated' ? `text-[#00ff9d] ${isDark ? 'bg-[#1a1a1a]' : 'bg-gray-100'}` : `${isDark ? 'text-gray-400 hover:text-gray-300 hover:bg-[#0a0a0a]' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}`}
@@ -307,7 +319,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <button
             onClick={() => setViewDensity(d => d === 'compact' ? 'comfortable' : 'compact')}
-            className={`px-3 py-2 ${isDark ? 'bg-[#1a1a1a] border-[#333]' : 'bg-gray-100 border-gray-300'} border rounded hover:border-[#00ff9d] transition-all flex items-center justify-center text-gray-400 hover:text-[#00ff9d]`}
+            className={`px-3 py-2 ${isDark ? 'bg-[#1a1a1a] border-[#333]' : 'bg-gray-100 border-gray-300'} border  hover:border-[#00ff9d] transition-all flex items-center justify-center text-gray-400 hover:text-[#00ff9d]`}
             title={viewDensity === 'compact' ? 'Comfortable view' : 'Compact view'}
             aria-label={viewDensity === 'compact' ? 'Comfortable view' : 'Compact view'}
           >
@@ -319,7 +331,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
           <button
             onClick={() => { setIsMultiSelectMode(!isMultiSelectMode); setSelectedNoteIds(new Set()); }}
-            className={`px-3 py-2 border rounded transition-all flex items-center justify-center ${isMultiSelectMode ? 'bg-[#002b1f] border-[#00ff9d] text-[#00ff9d]' : `${isDark ? 'bg-[#1a1a1a] border-[#333]' : 'bg-gray-100 border-gray-300'} hover:border-[#00ff9d] text-gray-400 hover:text-[#00ff9d]`}`}
+            className={`px-3 py-2 border  transition-all flex items-center justify-center ${isMultiSelectMode ? 'bg-[#002b1f] border-[#00ff9d] text-[#00ff9d]' : `${isDark ? 'bg-[#1a1a1a] border-[#333]' : 'bg-gray-100 border-gray-300'} hover:border-[#00ff9d] text-gray-400 hover:text-[#00ff9d]`}`}
             title="Multi-select"
             aria-label="Multi-select"
           >
@@ -332,7 +344,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="flex gap-2 overflow-x-auto pb-2 mb-2 no-scrollbar">
                 <button 
                     onClick={() => setTagFilter(null)}
-                    className={`shrink-0 px-2 py-1 rounded text-[10px] uppercase font-bold border transition-colors ${!tagFilter ? 'bg-[#00ff9d] text-black border-[#00ff9d]' : `${isDark ? 'bg-[#111] border-[#333]' : 'bg-gray-100 border-gray-300'} text-gray-500`}`}
+                    className={`shrink-0 px-2 py-1  text-[10px] uppercase font-bold border transition-colors ${!tagFilter ? 'bg-[#00ff9d] text-black border-[#00ff9d]' : `${isDark ? 'bg-[#111] border-[#333]' : 'bg-gray-100 border-gray-300'} text-gray-500`}`}
                 >
                     All
                 </button>
@@ -342,7 +354,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <button 
                         key={tag}
                         onClick={() => setTagFilter(tag === tagFilter ? null : tag)}
-                        className={`shrink-0 px-2 py-1 rounded text-[10px] border transition-colors ${tagFilter === tag ? 'text-white border-2' : `${isDark ? 'bg-[#111] border-[#333]' : 'bg-gray-100 border-gray-300'} text-gray-400 hover:border-gray-500`}`}
+                        className={`shrink-0 px-2 py-1  text-[10px] border transition-colors ${tagFilter === tag ? 'text-white border-2' : `${isDark ? 'bg-[#111] border-[#333]' : 'bg-gray-100 border-gray-300'} text-gray-400 hover:border-gray-500`}`}
                         style={{
                           borderColor: tagFilter === tag ? tagColor : undefined,
                           backgroundColor: tagFilter === tag ? `${tagColor}20` : undefined,
@@ -356,12 +368,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
         )}
 
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-6 gap-2">
             <div className="relative flex" ref={templateRef}>
                 <button onClick={onCreateNote} aria-label="Create new note" className={`flex-1 flex items-center justify-center ${isDark ? 'bg-[#1a1a1a] hover:bg-[#222] border-[#333] text-white' : 'bg-gray-100 hover:bg-gray-200 border-gray-300 text-gray-800'} py-2 rounded-l border border-r-0 transition-all hover:border-[#00ff9d] text-sm group`} title="New Note (Ctrl+N)"><ICONS.Plus /></button>
                 <button onClick={() => setIsTemplateOpen(!isTemplateOpen)} aria-label="New from template" aria-expanded={isTemplateOpen} className={`flex items-center justify-center px-1 ${isDark ? 'bg-[#1a1a1a] hover:bg-[#222] border-[#333]' : 'bg-gray-100 hover:bg-gray-200 border-gray-300'} text-gray-500 py-2 rounded-r border transition-all hover:border-[#00ff9d] hover:text-[#00ff9d] text-[10px] ${isTemplateOpen ? 'border-[#00ff9d] text-[#00ff9d]' : ''}`} title="New from Template">▼</button>
                 {isTemplateOpen && (
-                    <div className={`absolute top-full left-0 mt-1 w-56 ${isDark ? 'bg-[#111] border-[#333] shadow-black/50' : 'bg-white border-gray-200 shadow-gray-300/50'} border rounded shadow-lg z-50 py-1`}>
+                    <div className={`absolute top-full left-0 mt-1 w-56 ${isDark ? 'bg-[#111] border-[#333] shadow-black/50' : 'bg-white border-gray-200 shadow-gray-300/50'} border  shadow-lg z-50 py-1`}>
                         <div className={`px-3 py-2 text-[10px] text-gray-500 uppercase tracking-widest border-b ${isDark ? 'border-[#222]' : 'border-gray-200'}`}>Templates</div>
                         {NOTE_TEMPLATES.map(template => (
                             <button
@@ -379,13 +391,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </div>
                 )}
             </div>
-            <button onClick={() => { setIsFusionMode(!isFusionMode); setFusionSourceId(null); }} aria-label="Neural Fusion" className={`flex items-center justify-center gap-2 py-2 rounded border transition-all text-sm ${isFusionMode ? 'bg-[#002b1f] border-[#00ff9d] text-[#00ff9d] animate-pulse' : `${isDark ? 'bg-[#1a1a1a] hover:bg-[#222] border-[#333]' : 'bg-gray-100 hover:bg-gray-200 border-gray-300'} text-gray-300 hover:text-[#00ff9d]`}`} title="Neural Fusion"><ICONS.Atom /></button>
-             <button onClick={onToggleLive} aria-label="Live session" className={`flex items-center justify-center gap-2 py-2 rounded border transition-all text-sm ${currentView === 'live' ? 'bg-[#2a002a] border-[#ff00ff] text-[#ff00ff]' : `${isDark ? 'bg-[#1a1a1a] hover:bg-[#222] border-[#333]' : 'bg-gray-100 hover:bg-gray-200 border-gray-300'} text-gray-300 hover:text-[#ff00ff]`}`} title="Live"><ICONS.Live /></button>
-            <button onClick={onOpenSync} aria-label="Sync" className={`flex items-center justify-center gap-2 ${isDark ? 'bg-[#1a1a1a] hover:bg-[#222] border-[#333] text-white' : 'bg-gray-100 hover:bg-gray-200 border-gray-300 text-gray-800'} py-2 rounded border transition-all hover:border-blue-400 text-sm hover:text-blue-400`} title="Sync"><ICONS.Cloud /></button>
+            <button onClick={() => { setIsFusionMode(!isFusionMode); setFusionSourceId(null); }} aria-label="Neural Fusion" className={`flex items-center justify-center gap-2 py-2  border transition-all text-sm ${isFusionMode ? 'bg-[#002b1f] border-[#00ff9d] text-[#00ff9d] animate-pulse' : `${isDark ? 'bg-[#1a1a1a] hover:bg-[#222] border-[#333]' : 'bg-gray-100 hover:bg-gray-200 border-gray-300'} text-gray-300 hover:text-[#00ff9d]`}`} title="Neural Fusion"><ICONS.Atom /></button>
+             <button onClick={onToggleKanban} aria-label="Kanban board" className={`flex items-center justify-center gap-2 py-2  border transition-all text-sm ${currentView === 'kanban' ? 'bg-[#002b1f] border-[#00ff9d] text-[#00ff9d]' : `${isDark ? 'bg-[#1a1a1a] hover:bg-[#222] border-[#333]' : 'bg-gray-100 hover:bg-gray-200 border-gray-300'} text-gray-300 hover:text-[#00ff9d]`}`} title="Kanban Board"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="5" height="18" rx="0"></rect><rect x="10" y="3" width="5" height="12" rx="0"></rect><rect x="17" y="3" width="5" height="8" rx="0"></rect></svg></button>
+             <button onClick={onToggleCalendar} aria-label="Calendar view" className={`flex items-center justify-center gap-2 py-2  border transition-all text-sm ${currentView === 'calendar' ? 'bg-[#002b1f] border-[#00ff9d] text-[#00ff9d]' : `${isDark ? 'bg-[#1a1a1a] hover:bg-[#222] border-[#333]' : 'bg-gray-100 hover:bg-gray-200 border-gray-300'} text-gray-300 hover:text-[#00ff9d]`}`} title="Calendar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="0" ry="0"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></button>
+             <button onClick={onToggleLive} aria-label="Live session" className={`flex items-center justify-center gap-2 py-2  border transition-all text-sm ${currentView === 'live' ? 'bg-[#2a002a] border-[#ff00ff] text-[#ff00ff]' : `${isDark ? 'bg-[#1a1a1a] hover:bg-[#222] border-[#333]' : 'bg-gray-100 hover:bg-gray-200 border-gray-300'} text-gray-300 hover:text-[#ff00ff]`}`} title="Live"><ICONS.Live /></button>
+            <button onClick={onOpenSync} aria-label="Sync" className={`flex items-center justify-center gap-2 ${isDark ? 'bg-[#1a1a1a] hover:bg-[#222] border-[#333] text-white' : 'bg-gray-100 hover:bg-gray-200 border-gray-300 text-gray-800'} py-2  border transition-all hover:border-blue-400 text-sm hover:text-blue-400`} title="Sync"><ICONS.Cloud /></button>
         </div>
         
         {isFusionMode && (
-            <div className="mt-2 text-[10px] text-[#00ff9d] text-center uppercase tracking-widest bg-[#002b1f] py-1 rounded">
+            <div className="mt-2 text-[10px] text-[#00ff9d] text-center uppercase tracking-widest bg-[#002b1f] py-1 ">
                 {fusionSourceId ? "Select Target" : "Select Source"}
             </div>
         )}
@@ -399,12 +413,55 @@ export const Sidebar: React.FC<SidebarProps> = ({
               `## ${today}\n\n**Prompt:** *${prompt}*\n\n`
             );
           }}
-          className={`w-full flex items-center gap-2 px-3 py-2 mt-2 mb-2 text-sm text-gray-400 hover:text-[#ffd93d] ${isDark ? 'bg-[#1a1a1a] border-[#333]' : 'bg-gray-100 border-gray-300'} border rounded hover:border-[#ffd93d] transition-all`}
+          className={`w-full flex items-center gap-2 px-3 py-2 mt-2 mb-2 text-sm text-gray-400 hover:text-[#ffd93d] ${isDark ? 'bg-[#1a1a1a] border-[#333]' : 'bg-gray-100 border-gray-300'} border  hover:border-[#ffd93d] transition-all`}
         >
           <span>📔</span>
           <span className="flex-1 text-left">Daily Journal</span>
           <span className="text-[10px] text-gray-600 truncate max-w-[120px]">{getDailyPrompt().substring(0, 25)}...</span>
         </button>
+      </div>
+
+      {/* Folders Section */}
+      <div className={`px-3 py-2 border-b ${isDark ? 'border-[#1a1a1a]' : 'border-gray-200'}`}>
+        <div className="flex items-center justify-between mb-2">
+          <span className={`text-[9px] font-bold uppercase tracking-widest ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>Folders</span>
+          <button
+            onClick={() => {
+              const name = prompt('Folder name:');
+              if (name && onCreateFolder) onCreateFolder(name);
+            }}
+            className={`text-[10px] ${isDark ? 'text-gray-600 hover:text-[#00ff9d]' : 'text-gray-400 hover:text-green-600'} transition-colors`}
+            title="New Folder"
+          >+</button>
+        </div>
+        <button
+          onClick={() => onSelectFolder?.(null)}
+          className={`w-full text-left text-[11px] px-2 py-1 mb-0.5 transition-colors ${
+            !activeFolderId 
+              ? (isDark ? 'text-[#00ff9d] bg-[#00ff9d]/10' : 'text-green-600 bg-green-50') 
+              : (isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black')
+          }`}
+        >All Notes</button>
+        {folders?.map(folder => (
+          <div key={folder.id} className="flex items-center group">
+            <button
+              onClick={() => onSelectFolder?.(folder.id)}
+              className={`flex-1 text-left text-[11px] px-2 py-1 mb-0.5 transition-colors flex items-center gap-1.5 ${
+                activeFolderId === folder.id 
+                  ? (isDark ? 'text-[#00ff9d] bg-[#00ff9d]/10' : 'text-green-600 bg-green-50') 
+                  : (isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black')
+              }`}
+              style={folder.parentId ? { paddingLeft: '1.25rem' } : {}}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19V9a2 2 0 0 0-2-2h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2z"></path></svg>
+              {folder.name}
+            </button>
+            <button
+              onClick={() => onDeleteFolder?.(folder.id)}
+              className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 text-[10px] px-1"
+            >×</button>
+          </div>
+        ))}
       </div>
 
       <div className="flex-1 overflow-y-auto" role="listbox" aria-label="Notes list" onKeyDown={handleKeyNavigation} tabIndex={0}>
@@ -416,7 +473,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <button
                   key={n.id}
                   onClick={() => onSelectNote(n.id)}
-                  className={`shrink-0 px-2.5 py-1 rounded text-[10px] border transition-all truncate max-w-[120px] ${
+                  className={`shrink-0 px-2.5 py-1  text-[10px] border transition-all truncate max-w-[120px] ${
                     activeNoteId === n.id 
                       ? 'bg-[#00ff9d]/10 border-[#00ff9d]/50 text-[#00ff9d]' 
                       : `${isDark ? 'bg-[#111] border-[#222]' : 'bg-gray-100 border-gray-200'} text-gray-400 hover:border-[#333] hover:text-gray-300`
@@ -448,14 +505,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="flex-1"></div>
             <button 
               onClick={() => { selectedNoteIds.forEach(id => onArchiveNote(id)); setSelectedNoteIds(new Set()); setIsMultiSelectMode(false); }}
-              className="px-2 py-1 text-[10px] text-gray-400 hover:text-white border border-[#333] rounded hover:border-gray-400 transition-colors"
+              className="px-2 py-1 text-[10px] text-gray-400 hover:text-white border border-[#333]  hover:border-gray-400 transition-colors"
               title="Archive selected"
             >
               <ICONS.Archive />
             </button>
             <button 
               onClick={() => { selectedNoteIds.forEach(id => onTrashNote(id)); setSelectedNoteIds(new Set()); setIsMultiSelectMode(false); }}
-              className="px-2 py-1 text-[10px] text-red-500/70 hover:text-red-400 border border-[#333] rounded hover:border-red-500/50 transition-colors"
+              className="px-2 py-1 text-[10px] text-red-500/70 hover:text-red-400 border border-[#333]  hover:border-red-500/50 transition-colors"
               title="Trash selected"
             >
               <ICONS.Trash />
@@ -551,7 +608,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                            return (
                              <span 
                                key={tag} 
-                               className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] border transition-colors"
+                               className="flex items-center gap-1 px-1.5 py-0.5  text-[9px] border transition-colors"
                                style={{
                                  borderColor: tagColor,
                                  backgroundColor: `${tagColor}15`,
@@ -587,7 +644,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 
                 <div className={`flex justify-between items-center ${viewDensity === 'compact' ? '' : 'mt-1'}`}>
                    <span className={`${viewDensity === 'compact' ? 'text-[8px]' : 'text-[10px]'} text-gray-600 font-mono`}>{formatTime(note.updatedAt)}</span>
-                   {note.attachments.length > 0 && <span className={`text-[10px] ${isDark ? 'bg-[#1a1a1a]' : 'bg-gray-100'} text-gray-400 px-1 rounded`}>Media</span>}
+                   {note.attachments.length > 0 && <span className={`text-[10px] ${isDark ? 'bg-[#1a1a1a]' : 'bg-gray-100'} text-gray-400 px-1 `}>Media</span>}
                 </div>
               </div>
               
@@ -704,12 +761,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <span>{storageSize}</span>
         </div>
         <div className="flex gap-2">
-          <button onClick={onOpenChat} aria-label="Open AI Assistant" className="flex-1 flex items-center justify-center gap-2 text-black font-bold py-3 rounded transition-colors" style={{ backgroundColor: accentColor, boxShadow: `0 0 10px ${accentColor}40` }}>
+          <button onClick={onOpenChat} aria-label="Open AI Assistant" className="flex-1 flex items-center justify-center gap-2 text-black font-bold py-3  transition-colors" style={{ backgroundColor: accentColor, boxShadow: `0 0 10px ${accentColor}40` }}>
               <ICONS.Chat /> AI Assistant
           </button>
           <button 
             onClick={toggleTheme} 
-            className={`p-3 rounded-lg border transition-colors ${isDark ? 'border-[#333] text-gray-400 hover:text-[#ffd93d]' : 'border-gray-300 text-gray-500 hover:text-[#ffd93d]'}`}
+            className={`p-3  border transition-colors ${isDark ? 'border-[#333] text-gray-400 hover:text-[#ffd93d]' : 'border-gray-300 text-gray-500 hover:text-[#ffd93d]'}`}
             title={isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
             aria-label={isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
           >
@@ -721,19 +778,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
           <button 
             onClick={() => setShowThemeEditor(!showThemeEditor)}
-            className={`p-3 rounded-lg border transition-colors ${isDark ? 'border-[#333] text-gray-400 hover:text-white' : 'border-gray-300 text-gray-500 hover:text-gray-800'}`}
+            className={`p-3  border transition-colors ${isDark ? 'border-[#333] text-gray-400 hover:text-white' : 'border-gray-300 text-gray-500 hover:text-gray-800'}`}
             title="Theme Editor"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5"></circle><circle cx="17.5" cy="10.5" r=".5"></circle><circle cx="8.5" cy="7.5" r=".5"></circle><circle cx="6.5" cy="12.5" r=".5"></circle><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path></svg>
           </button>
           {onShowShortcuts && (
-              <button onClick={onShowShortcuts} aria-label="Keyboard shortcuts" className={`w-12 flex items-center justify-center ${isDark ? 'bg-[#1a1a1a] border-[#333]' : 'bg-gray-100 border-gray-300'} border rounded hover:border-[#00ff9d] hover:text-[#00ff9d] transition-colors`} title="Shortcuts (Ctrl+/)">
+              <button onClick={onShowShortcuts} aria-label="Keyboard shortcuts" className={`w-12 flex items-center justify-center ${isDark ? 'bg-[#1a1a1a] border-[#333]' : 'bg-gray-100 border-gray-300'} border  hover:border-[#00ff9d] hover:text-[#00ff9d] transition-colors`} title="Shortcuts (Ctrl+/)">
                   <ICONS.Keyboard />
               </button>
           )}
         </div>
         {showThemeEditor && (
-          <div className={`absolute bottom-16 left-4 right-4 z-50 ${isDark ? 'bg-[#111] border-[#333]' : 'bg-white border-gray-200'} border rounded-lg shadow-xl p-4 animate-scale-in`}>
+          <div className={`absolute bottom-16 left-4 right-4 z-50 ${isDark ? 'bg-[#111] border-[#333]' : 'bg-white border-gray-200'} border  shadow-xl p-4 animate-scale-in`}>
             <div className="flex justify-between items-center mb-3">
               <h4 className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-white' : 'text-gray-800'}`}>Accent Color</h4>
               <button onClick={() => setShowThemeEditor(false)} className="text-gray-500 hover:text-white"><ICONS.Close /></button>
@@ -754,7 +811,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 type="color" 
                 value={accentColor} 
                 onChange={(e) => setAccentColor(e.target.value)}
-                className="w-8 h-8 rounded cursor-pointer border-0 bg-transparent"
+                className="w-8 h-8  cursor-pointer border-0 bg-transparent"
               />
               <span className={`text-[10px] font-mono ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{accentColor}</span>
             </div>

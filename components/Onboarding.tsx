@@ -67,7 +67,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
       <div className="relative w-full max-w-md mx-4 animate-scale-in">
-        <div className="bg-[#111] border border-[#333] rounded-2xl p-8 shadow-[0_0_60px_rgba(0,255,157,0.1)]">
+        <div className="bg-[#111] border border-[#333]  p-8 shadow-[0_0_60px_rgba(0,255,157,0.1)]">
           <div className="text-center mb-6">
             <span className="text-4xl">{current.icon}</span>
           </div>
@@ -84,7 +84,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             <button onClick={handleSkip} className="text-gray-600 hover:text-gray-400 text-sm transition-colors">
               Skip tour
             </button>
-            <button onClick={handleNext} className="bg-[#00ff9d] text-black font-bold px-6 py-2.5 rounded-lg hover:bg-[#00e68a] transition-colors text-sm">
+            <button onClick={handleNext} className="bg-[#00ff9d] text-black font-bold px-6 py-2.5  hover:bg-[#00e68a] transition-colors text-sm">
               {step === STEPS.length - 1 ? 'Get Started' : 'Next'}
             </button>
           </div>

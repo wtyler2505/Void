@@ -260,7 +260,7 @@ ${note.attachments.length > 0 ? `**Attachments:** ${note.attachments.length} fil
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
-      <div className="bg-[#0a0a0a] border border-[#00ff9d] w-full max-w-md rounded shadow-[0_0_50px_rgba(0,255,157,0.1)] overflow-hidden" onClick={e => e.stopPropagation()}>
+      <div className="bg-[#0a0a0a] border border-[#00ff9d] w-full max-w-md  shadow-[0_0_50px_rgba(0,255,157,0.1)] overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-4 border-b border-[#333] bg-[#050505]">
           <h2 className="text-[#00ff9d] font-bold text-lg flex items-center gap-2">
             <ICONS.Download /> EXPORT DATA
@@ -271,7 +271,7 @@ ${note.attachments.length > 0 ? `**Attachments:** ${note.attachments.length} fil
         <div className="p-6 grid grid-cols-2 gap-4">
             <button 
                 onClick={handleCopy}
-                className="flex flex-col items-center justify-center p-4 bg-[#111] border border-[#333] rounded hover:border-[#00ff9d] hover:bg-[#002b1f] hover:text-[#00ff9d] transition-all gap-2 group"
+                className="flex flex-col items-center justify-center p-4 bg-[#111] border border-[#333]  hover:border-[#00ff9d] hover:bg-[#002b1f] hover:text-[#00ff9d] transition-all gap-2 group"
             >
                 <ICONS.Copy className="w-6 h-6 text-gray-400 group-hover:text-[#00ff9d]" />
                 <span className="text-sm font-bold">Clipboard</span>
@@ -279,7 +279,7 @@ ${note.attachments.length > 0 ? `**Attachments:** ${note.attachments.length} fil
 
             <button 
                 onClick={handleDownloadMD}
-                className="flex flex-col items-center justify-center p-4 bg-[#111] border border-[#333] rounded hover:border-[#00ff9d] hover:bg-[#002b1f] hover:text-[#00ff9d] transition-all gap-2 group"
+                className="flex flex-col items-center justify-center p-4 bg-[#111] border border-[#333]  hover:border-[#00ff9d] hover:bg-[#002b1f] hover:text-[#00ff9d] transition-all gap-2 group"
             >
                 <ICONS.FileText className="w-6 h-6 text-gray-400 group-hover:text-[#00ff9d]" />
                 <span className="text-sm font-bold">Markdown (.md)</span>
@@ -287,7 +287,7 @@ ${note.attachments.length > 0 ? `**Attachments:** ${note.attachments.length} fil
 
             <button 
                 onClick={handleDownloadTXT}
-                className="flex flex-col items-center justify-center p-4 bg-[#111] border border-[#333] rounded hover:border-[#00ff9d] hover:bg-[#002b1f] hover:text-[#00ff9d] transition-all gap-2 group"
+                className="flex flex-col items-center justify-center p-4 bg-[#111] border border-[#333]  hover:border-[#00ff9d] hover:bg-[#002b1f] hover:text-[#00ff9d] transition-all gap-2 group"
             >
                 <ICONS.FileText className="w-6 h-6 text-gray-400 group-hover:text-[#00ff9d]" />
                 <span className="text-sm font-bold">Plain Text (.txt)</span>
@@ -295,7 +295,7 @@ ${note.attachments.length > 0 ? `**Attachments:** ${note.attachments.length} fil
 
             <button 
                 onClick={handleDownloadJSON}
-                className="flex flex-col items-center justify-center p-4 bg-[#111] border border-[#333] rounded hover:border-[#00ff9d] hover:bg-[#002b1f] hover:text-[#00ff9d] transition-all gap-2 group"
+                className="flex flex-col items-center justify-center p-4 bg-[#111] border border-[#333]  hover:border-[#00ff9d] hover:bg-[#002b1f] hover:text-[#00ff9d] transition-all gap-2 group"
             >
                 <ICONS.FileCode className="w-6 h-6 text-gray-400 group-hover:text-[#00ff9d]" />
                 <span className="text-sm font-bold">JSON Object</span>
@@ -303,7 +303,7 @@ ${note.attachments.length > 0 ? `**Attachments:** ${note.attachments.length} fil
 
             <button 
                 onClick={handleDownloadHTML}
-                className="flex flex-col items-center justify-center p-4 bg-[#111] border border-[#333] rounded hover:border-[#00ff9d] hover:bg-[#002b1f] hover:text-[#00ff9d] transition-all gap-2 group"
+                className="flex flex-col items-center justify-center p-4 bg-[#111] border border-[#333]  hover:border-[#00ff9d] hover:bg-[#002b1f] hover:text-[#00ff9d] transition-all gap-2 group"
             >
                 <ICONS.FileCode className="w-6 h-6 text-gray-400 group-hover:text-[#00ff9d]" />
                 <span className="text-sm font-bold">HTML File</span>
@@ -311,7 +311,7 @@ ${note.attachments.length > 0 ? `**Attachments:** ${note.attachments.length} fil
 
             <button 
                 onClick={handlePrint}
-                className="flex flex-col items-center justify-center p-4 bg-[#111] border border-[#333] rounded hover:border-[#00ff9d] hover:bg-[#002b1f] hover:text-[#00ff9d] transition-all gap-2 group"
+                className="flex flex-col items-center justify-center p-4 bg-[#111] border border-[#333]  hover:border-[#00ff9d] hover:bg-[#002b1f] hover:text-[#00ff9d] transition-all gap-2 group"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-gray-400 group-hover:text-[#00ff9d]"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                 <span className="text-sm font-bold">Print</span>

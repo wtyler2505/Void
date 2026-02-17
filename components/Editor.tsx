@@ -18,9 +18,10 @@ interface EditorProps {
   onOpenChat: () => void;
   onSplitNote?: (id: string) => void;
   splitNoteId?: string | null;
+  folders?: { id: string; name: string }[];
 }
 
-export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSelectNote, onExport, onOpenChat, onSplitNote, splitNoteId }) => {
+export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSelectNote, onExport, onOpenChat, onSplitNote, splitNoteId, folders }) => {
   const { isDark } = useTheme();
   const [isThinking, setIsThinking] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -380,7 +381,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
     { id: 'code', label: 'Code Block', icon: '<>', insert: '```\n\n```' },
     { id: 'quote', label: 'Blockquote', icon: '❝', insert: '> ' },
     { id: 'divider', label: 'Divider', icon: '—', insert: '---\n' },
-    { id: 'table', label: 'Table', icon: '⊞', insert: '| Column 1 | Column 2 | Column 3 |\n| --- | --- | --- |\n|  |  |  |\n' },
+    { id: 'table', label: 'Table', icon: '⊞', insert: '\n| Header 1 | Header 2 | Header 3 |\n|----------|----------|----------|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |\n' },
     { id: 'image', label: 'Image', icon: '🖼', insert: '![Alt text](url)' },
     { id: 'link', label: 'Link', icon: '🔗', insert: '[Link text](url)' },
   ];
@@ -701,12 +702,12 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
       }
       if (!inline) {
         return (
-          <pre className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg p-4 overflow-x-auto my-4">
+          <pre className="bg-[#0a0a0a] border border-[#1a1a1a]  p-4 overflow-x-auto my-4">
             <code className={`text-sm font-mono text-gray-300 ${className || ''}`} {...props}>{children}</code>
           </pre>
         );
       }
-      return <code className="bg-[#1a1a1a] text-[#ff6b6b] px-1.5 py-0.5 rounded text-sm font-mono" {...props}>{children}</code>;
+      return <code className="bg-[#1a1a1a] text-[#ff6b6b] px-1.5 py-0.5  text-sm font-mono" {...props}>{children}</code>;
     },
     blockquote: ({ children }: any) => (
       <blockquote className="border-l-2 border-[#00ff9d]/30 pl-4 my-4 text-gray-400 italic">{children}</blockquote>
@@ -723,6 +724,47 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
             {children}
           </button>
         );
+      }
+      const childText = Array.isArray(children) ? children.join('') : String(children || '');
+      const isBareUrl = href && (childText === href || childText === href.replace(/\/$/, ''));
+      if (isBareUrl && href.match(/^https?:\/\//)) {
+        try {
+          const domain = new URL(href).hostname.replace('www.', '');
+          const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=16`;
+          return (
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="link-card"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 12px',
+                border: `1px solid ${isDark ? '#333' : '#ddd'}`,
+                textDecoration: 'none',
+                color: isDark ? '#00ff9d' : '#059669',
+                fontSize: '0.8em',
+                margin: '2px 0',
+                transition: 'all 0.2s',
+                maxWidth: '100%',
+                overflow: 'hidden',
+                borderRadius: '0',
+              }}
+            >
+              <img src={favicon} width="14" height="14" style={{ flexShrink: 0 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{domain}</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+            </a>
+          );
+        } catch {
+          return <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: isDark ? '#00ff9d' : '#059669' }}>{href}</a>;
+        }
       }
       return <a href={href} target="_blank" rel="noopener noreferrer" className="text-[#00d2ff] hover:text-white underline">{children}</a>;
     },
@@ -769,6 +811,24 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
       }
       return <strong className="text-white font-bold">{children}</strong>;
     },
+    table: ({ children }: any) => (
+      <table className="w-full border-collapse my-4" style={{ border: `1px solid ${isDark ? '#333' : '#ddd'}` }}>{children}</table>
+    ),
+    thead: ({ children }: any) => (
+      <thead style={{ background: isDark ? '#1a1a1a' : '#f3f4f6' }}>{children}</thead>
+    ),
+    tbody: ({ children }: any) => (
+      <tbody>{children}</tbody>
+    ),
+    tr: ({ children }: any) => (
+      <tr style={{ borderBottom: `1px solid ${isDark ? '#333' : '#ddd'}` }}>{children}</tr>
+    ),
+    th: ({ children }: any) => (
+      <th style={{ border: `1px solid ${isDark ? '#333' : '#ddd'}`, padding: '8px 12px', textAlign: 'left', fontWeight: 'bold', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', color: isDark ? '#00ff9d' : '#333' }}>{children}</th>
+    ),
+    td: ({ children }: any) => (
+      <td style={{ border: `1px solid ${isDark ? '#333' : '#ddd'}`, padding: '8px 12px', textAlign: 'left', color: isDark ? '#ccc' : '#333' }}>{children}</td>
+    ),
   };
   
   const getSaveStatusText = () => {
@@ -790,23 +850,23 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
       )}
 
       {pomodoroAlert && (
-        <div className="absolute top-12 left-1/2 -translate-x-1/2 bg-[#ff6b6b] text-white px-4 py-2 rounded font-bold text-sm animate-bounce z-50 shadow-lg shadow-red-500/30">
+        <div className="absolute top-12 left-1/2 -translate-x-1/2 bg-[#ff6b6b] text-white px-4 py-2  font-bold text-sm animate-bounce z-50 shadow-lg shadow-red-500/30">
           {pomodoroMode === 'break' ? '☕ Break Time!' : '🔥 Focus Time!'}
         </div>
       )}
 
       <div role="toolbar" aria-label="Editor toolbar" className={`flex items-center gap-2 p-3 border-b ${isDark ? 'border-[#1a1a1a] bg-[#0a0a0a]' : 'border-gray-200 bg-white'} overflow-x-auto z-20 no-scrollbar relative`}>
-         <button onClick={toggleRecording} aria-label={isRecording ? 'Stop recording' : 'Start recording'} className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all ${isRecording ? 'bg-red-500 text-white animate-pulse' : `${isDark ? 'bg-[#1a1a1a] border-[#333]' : 'bg-gray-100 border-gray-300'} text-gray-400 hover:text-[#00ff9d] border`}`}>
+         <button onClick={toggleRecording} aria-label={isRecording ? 'Stop recording' : 'Start recording'} className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5  text-xs font-bold uppercase tracking-wider transition-all ${isRecording ? 'bg-red-500 text-white animate-pulse' : `${isDark ? 'bg-[#1a1a1a] border-[#333]' : 'bg-gray-100 border-gray-300'} text-gray-400 hover:text-[#00ff9d] border`}`}>
           <ICONS.Mic /> {isRecording ? 'STOP' : 'REC'}
         </button>
         <div className={`w-[1px] h-6 ${isDark ? 'bg-[#333]' : 'bg-gray-300'} mx-1`}></div>
         <div className="flex gap-1">
-            <button onClick={handleSummarize} disabled={isProcessing} aria-label="Summarize" className={`p-2 rounded ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-[#00ff9d] disabled:opacity-50`}><ICONS.Brain /></button>
-            <button onClick={handleFastEnhance} disabled={isProcessing} aria-label="AI enhance" className={`p-2 rounded ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-[#00d2ff] disabled:opacity-50`}><ICONS.Bolt /></button>
-            <button onClick={handleVisualize} disabled={isProcessing} aria-label="Visualize" className={`p-2 rounded ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-yellow-400 disabled:opacity-50`}><ICONS.Eye /></button>
-            <button onClick={handleGenerateVideo} disabled={isProcessing} aria-label="Generate video" className={`p-2 rounded ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-purple-400 disabled:opacity-50`}><ICONS.Video /></button>
-            <button onClick={handleTTS} disabled={isProcessing} aria-label="Text to speech" className={`p-2 rounded ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-pink-400 disabled:opacity-50`}><ICONS.Speaker /></button>
-            <button onClick={() => setShowPreview(!showPreview)} aria-label="Toggle preview" className={`p-2 rounded ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} transition-colors ${showPreview ? 'text-[#00ff9d]' : 'text-gray-400'}`} title="Toggle Preview"><ICONS.Columns /></button>
+            <button onClick={handleSummarize} disabled={isProcessing} aria-label="Summarize" className={`p-2  ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-[#00ff9d] disabled:opacity-50`}><ICONS.Brain /></button>
+            <button onClick={handleFastEnhance} disabled={isProcessing} aria-label="AI enhance" className={`p-2  ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-[#00d2ff] disabled:opacity-50`}><ICONS.Bolt /></button>
+            <button onClick={handleVisualize} disabled={isProcessing} aria-label="Visualize" className={`p-2  ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-yellow-400 disabled:opacity-50`}><ICONS.Eye /></button>
+            <button onClick={handleGenerateVideo} disabled={isProcessing} aria-label="Generate video" className={`p-2  ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-purple-400 disabled:opacity-50`}><ICONS.Video /></button>
+            <button onClick={handleTTS} disabled={isProcessing} aria-label="Text to speech" className={`p-2  ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-pink-400 disabled:opacity-50`}><ICONS.Speaker /></button>
+            <button onClick={() => setShowPreview(!showPreview)} aria-label="Toggle preview" className={`p-2  ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} transition-colors ${showPreview ? 'text-[#00ff9d]' : 'text-gray-400'}`} title="Toggle Preview"><ICONS.Columns /></button>
             {onSplitNote && (
               <button 
                 onClick={() => {
@@ -818,19 +878,37 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
                   }
                 }}
                 aria-label="Split pane"
-                className={`p-2 rounded ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} transition-colors ${splitNoteId ? 'text-[#00d2ff]' : 'text-gray-400 hover:text-[#00d2ff]'}`}
+                className={`p-2  ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} transition-colors ${splitNoteId ? 'text-[#00d2ff]' : 'text-gray-400 hover:text-[#00d2ff]'}`}
                 title={splitNoteId ? 'Close Split View' : 'Split View'}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
               </button>
             )}
-            <button onClick={toggleHaunt} disabled={isProcessing} aria-label="Find related notes" className={`p-2 rounded ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} transition-colors disabled:opacity-50 ${showHauntPanel ? 'text-[#ff00ff] bg-[#1a051a]' : 'text-gray-400 hover:text-[#ff00ff]'}`} title="Haunt (Find Related)"><ICONS.Ghost /></button>
-            <button onClick={() => setIsZenMode(true)} aria-label="Focus mode" className={`p-2 rounded ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-gray-400 hover:text-[#00ff9d] transition-colors`} title="Focus Mode"><ICONS.Focus /></button>
-            <button onClick={() => setPomodoroActive(!pomodoroActive)} aria-label="Pomodoro timer" className={`p-2 rounded ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} transition-colors ${pomodoroActive ? 'text-[#ff6b6b]' : 'text-gray-400 hover:text-[#ff6b6b]'}`} title="Pomodoro Timer">
+            <button
+              onClick={() => {
+                const table = '\n| Header 1 | Header 2 | Header 3 |\n|----------|----------|----------|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |\n';
+                const textarea = document.querySelector('textarea');
+                if (textarea) {
+                  const start = textarea.selectionStart;
+                  const end = textarea.selectionEnd;
+                  const text = note.content;
+                  const newContent = text.substring(0, start) + table + text.substring(end);
+                  onUpdate({ content: newContent });
+                }
+              }}
+              aria-label="Insert table"
+              className={`p-2 ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} transition-colors text-gray-400 hover:text-[#00ff9d]`}
+              title="Insert Table"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="0" ry="0"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
+            </button>
+            <button onClick={toggleHaunt} disabled={isProcessing} aria-label="Find related notes" className={`p-2  ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} transition-colors disabled:opacity-50 ${showHauntPanel ? 'text-[#ff00ff] bg-[#1a051a]' : 'text-gray-400 hover:text-[#ff00ff]'}`} title="Haunt (Find Related)"><ICONS.Ghost /></button>
+            <button onClick={() => setIsZenMode(true)} aria-label="Focus mode" className={`p-2  ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-gray-400 hover:text-[#00ff9d] transition-colors`} title="Focus Mode"><ICONS.Focus /></button>
+            <button onClick={() => setPomodoroActive(!pomodoroActive)} aria-label="Pomodoro timer" className={`p-2  ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} transition-colors ${pomodoroActive ? 'text-[#ff6b6b]' : 'text-gray-400 hover:text-[#ff6b6b]'}`} title="Pomodoro Timer">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
             </button>
             {pomodoroActive && (
-              <div className={`flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 ${isDark ? 'bg-[#1a1a1a] border-[#333]' : 'bg-gray-100 border-gray-300'} border rounded ml-1 md:ml-2`}>
+              <div className={`flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 ${isDark ? 'bg-[#1a1a1a] border-[#333]' : 'bg-gray-100 border-gray-300'} border  ml-1 md:ml-2`}>
                 <span className={`font-mono text-xs md:text-sm font-bold ${pomodoroMode === 'work' ? 'text-[#ff6b6b]' : 'text-[#00ff9d]'}`}>
                   {Math.floor(pomodoroTime / 60).toString().padStart(2, '0')}:{(pomodoroTime % 60).toString().padStart(2, '0')}
                 </span>
@@ -841,21 +919,21 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
                 <button onClick={() => { setPomodoroRunning(false); setPomodoroTime(pomodoroMode === 'work' ? 25 * 60 : 5 * 60); }} className="text-xs text-gray-400 hover:text-white px-1 min-w-[28px] min-h-[28px] md:min-w-0 md:min-h-0 flex items-center justify-center">↺</button>
               </div>
             )}
-            <button onClick={onOpenChat} disabled={isProcessing} aria-label="Chat assistant" className={`p-2 rounded ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-green-400 hover:text-green-300 disabled:opacity-50`} title="Chat Assistant"><ICONS.Chat /></button>
-            <button onClick={onExport} disabled={isProcessing} aria-label="Export" className={`p-2 rounded ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-gray-400 hover:text-white disabled:opacity-50`} title="Export"><ICONS.Download /></button>
+            <button onClick={onOpenChat} disabled={isProcessing} aria-label="Chat assistant" className={`p-2  ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-green-400 hover:text-green-300 disabled:opacity-50`} title="Chat Assistant"><ICONS.Chat /></button>
+            <button onClick={onExport} disabled={isProcessing} aria-label="Export" className={`p-2  ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-gray-400 hover:text-white disabled:opacity-50`} title="Export"><ICONS.Download /></button>
             <button onClick={async () => {
               if (showVersions) { setShowVersions(false); return; }
               const v = await loadNoteVersions(note.id);
               setVersions(v);
               setShowVersions(true);
               setSelectedVersion(null);
-            }} aria-label="Version history" className={`p-2 rounded ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} transition-colors ${showVersions ? 'text-[#ffd93d]' : 'text-gray-400 hover:text-[#ffd93d]'}`} title="Version History">
+            }} aria-label="Version history" className={`p-2  ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} transition-colors ${showVersions ? 'text-[#ffd93d]' : 'text-gray-400 hover:text-[#ffd93d]'}`} title="Version History">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v5h5"></path><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path><path d="M12 7v5l4 2"></path></svg>
             </button>
             <button 
               onClick={() => setShowReminderPicker(!showReminderPicker)}
               aria-label="Set reminder"
-              className={`p-2 rounded ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} transition-colors ${note.reminder ? 'text-[#ff9f43]' : 'text-gray-400 hover:text-[#ff9f43]'}`}
+              className={`p-2  ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} transition-colors ${note.reminder ? 'text-[#ff9f43]' : 'text-gray-400 hover:text-[#ff9f43]'}`}
               title={note.reminder ? `Reminder: ${new Date(note.reminder).toLocaleString()}` : 'Set Reminder'}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
@@ -883,27 +961,27 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
             )}
         </div>
 
-        <label className={`flex-shrink-0 flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none border ${isDark ? 'border-[#333]' : 'border-gray-300'} px-2 py-1 rounded hover:border-[#00ff9d] transition-colors`}>
+        <label className={`flex-shrink-0 flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none border ${isDark ? 'border-[#333]' : 'border-gray-300'} px-2 py-1  hover:border-[#00ff9d] transition-colors`}>
             <input type="checkbox" checked={isThinking} onChange={(e) => setIsThinking(e.target.checked)} className="accent-[#00ff9d]" />
             <span className="hidden md:inline">Thinking</span>
             <span className="md:hidden">Think</span>
         </label>
 
         {showReminderPicker && (
-          <div className={`absolute top-[53px] right-4 z-50 ${isDark ? 'bg-[#111] border-[#333]' : 'bg-white border-gray-200'} border rounded-lg shadow-xl p-4 w-64 animate-scale-in`}>
+          <div className={`absolute top-[53px] right-4 z-50 ${isDark ? 'bg-[#111] border-[#333]' : 'bg-white border-gray-200'} border  shadow-xl p-4 w-64 animate-scale-in`}>
             <h4 className={`text-xs font-bold uppercase tracking-wider mb-3 ${isDark ? 'text-[#ff9f43]' : 'text-orange-500'}`}>Set Reminder</h4>
             <div className="space-y-2">
               <input 
                 type="date" 
                 value={reminderDate} 
                 onChange={(e) => setReminderDate(e.target.value)}
-                className={`w-full ${isDark ? 'bg-[#1a1a1a] border-[#333] text-gray-300' : 'bg-gray-100 border-gray-200 text-gray-800'} border rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#ff9f43]`}
+                className={`w-full ${isDark ? 'bg-[#1a1a1a] border-[#333] text-gray-300' : 'bg-gray-100 border-gray-200 text-gray-800'} border  px-3 py-1.5 text-sm focus:outline-none focus:border-[#ff9f43]`}
               />
               <input 
                 type="time" 
                 value={reminderTime} 
                 onChange={(e) => setReminderTime(e.target.value)}
-                className={`w-full ${isDark ? 'bg-[#1a1a1a] border-[#333] text-gray-300' : 'bg-gray-100 border-gray-200 text-gray-800'} border rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#ff9f43]`}
+                className={`w-full ${isDark ? 'bg-[#1a1a1a] border-[#333] text-gray-300' : 'bg-gray-100 border-gray-200 text-gray-800'} border  px-3 py-1.5 text-sm focus:outline-none focus:border-[#ff9f43]`}
               />
             </div>
             <div className="flex justify-between items-center mt-3">
@@ -925,7 +1003,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
                       setReminderTime('');
                     }
                   }}
-                  className="bg-[#ff9f43] text-black font-bold px-3 py-1 rounded text-xs hover:bg-[#ffb366]"
+                  className="bg-[#ff9f43] text-black font-bold px-3 py-1  text-xs hover:bg-[#ffb366]"
                 >Set</button>
               </div>
             </div>
@@ -954,6 +1032,17 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
                 </>
               )}
               <span className={`truncate max-w-[200px] ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{note.title || 'Untitled'}</span>
+              <span className="mx-1">|</span>
+              <select
+                value={note.folderId || ''}
+                onChange={(e) => onUpdate({ folderId: e.target.value || undefined })}
+                className={`text-[10px] px-2 py-0.5 ${isDark ? 'bg-[#111] border-[#333] text-gray-400' : 'bg-gray-100 border-gray-200 text-gray-600'} border focus:outline-none focus:border-[#00ff9d]`}
+              >
+                <option value="">No Folder</option>
+                {folders?.map(f => (
+                  <option key={f.id} value={f.id}>{f.name}</option>
+                ))}
+              </select>
             </div>
             <div className="flex items-center gap-2 mb-4 md:mb-6">
                 <input 
@@ -969,13 +1058,13 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
             {note.attachments.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 md:mb-8">
                     {note.attachments.map(att => (
-                        <div key={att.id} className={`relative group border ${isDark ? 'border-[#333] bg-[#111]' : 'border-gray-200 bg-white'} rounded overflow-hidden`}>
+                        <div key={att.id} className={`relative group border ${isDark ? 'border-[#333] bg-[#111]' : 'border-gray-200 bg-white'}  overflow-hidden`}>
                             {att.type === 'image' && <img src={att.url} className="w-full h-48 md:h-40 object-cover" />}
                             {att.type === 'video' && <video src={att.url} controls className="w-full h-48 md:h-40 object-cover" />}
                             <div className="absolute top-1 right-1 flex gap-1">
-                                {att.type === 'image' && <button onClick={() => handleEditImage(att.id, att.url)} className="bg-black/50 p-1 rounded text-white"><ICONS.Wand /></button>}
-                                {att.type === 'video' && <button onClick={() => handleAnalyzeVideo(att.id, att.url)} className="bg-black/50 p-1 rounded text-white"><ICONS.Scan /></button>}
-                                <button onClick={() => { onUpdate({ attachments: note.attachments.filter(a => a.id !== att.id) }); triggerSaveVisual(); }} className="bg-red-500/80 p-1 rounded text-white"><ICONS.Close /></button>
+                                {att.type === 'image' && <button onClick={() => handleEditImage(att.id, att.url)} className="bg-black/50 p-1  text-white"><ICONS.Wand /></button>}
+                                {att.type === 'video' && <button onClick={() => handleAnalyzeVideo(att.id, att.url)} className="bg-black/50 p-1  text-white"><ICONS.Scan /></button>}
+                                <button onClick={() => { onUpdate({ attachments: note.attachments.filter(a => a.id !== att.id) }); triggerSaveVisual(); }} className="bg-red-500/80 p-1  text-white"><ICONS.Close /></button>
                             </div>
                         </div>
                     ))}
@@ -994,7 +1083,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
                       className={`w-full bg-transparent text-base md:text-lg ${isDark ? 'text-gray-300' : 'text-gray-800'} resize-none focus:outline-none min-h-[50vh] leading-relaxed font-mono pb-20`}
                     />
                     {showLinkSuggest && (
-                      <div className={`absolute z-50 ${isDark ? 'bg-[#111] border-[#333]' : 'bg-white border-gray-200'} border rounded shadow-lg max-w-xs w-64 overflow-hidden`} style={{ top: '2rem', left: '1rem' }}>
+                      <div className={`absolute z-50 ${isDark ? 'bg-[#111] border-[#333]' : 'bg-white border-gray-200'} border  shadow-lg max-w-xs w-64 overflow-hidden`} style={{ top: '2rem', left: '1rem' }}>
                         {linkSuggestions.length === 0 ? (
                           <div className="px-3 py-2 text-sm text-gray-500 italic">No matches</div>
                         ) : (
@@ -1011,7 +1100,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
                       </div>
                     )}
                     {showSlashMenu && filteredSlashCommands.length > 0 && (
-                      <div className={`absolute z-50 ${isDark ? 'bg-[#111] border-[#333]' : 'bg-white border-gray-200'} border rounded-lg shadow-lg w-64 overflow-hidden max-h-80 overflow-y-auto`} style={{ top: '2rem', left: '1rem' }}>
+                      <div className={`absolute z-50 ${isDark ? 'bg-[#111] border-[#333]' : 'bg-white border-gray-200'} border  shadow-lg w-64 overflow-hidden max-h-80 overflow-y-auto`} style={{ top: '2rem', left: '1rem' }}>
                         <div className={`px-3 py-1.5 text-[10px] text-gray-500 uppercase tracking-widest border-b ${isDark ? 'border-[#222]' : 'border-gray-200'}`}>Insert Block</div>
                         {filteredSlashCommands.map((cmd, i) => (
                           <div
@@ -1040,7 +1129,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
       </div>
       
       {showCheatSheet && (
-        <div className={`absolute bottom-10 left-4 z-40 ${isDark ? 'bg-[#111] border-[#333]' : 'bg-white border-gray-200'} border rounded-lg shadow-xl p-4 w-72 animate-fade-in`}>
+        <div className={`absolute bottom-10 left-4 z-40 ${isDark ? 'bg-[#111] border-[#333]' : 'bg-white border-gray-200'} border  shadow-xl p-4 w-72 animate-fade-in`}>
           <div className="flex justify-between items-center mb-3">
             <h4 className="text-xs font-bold text-[#00ff9d] uppercase tracking-wider">Markdown Shortcuts</h4>
             <button onClick={() => setShowCheatSheet(false)} className="text-gray-500 hover:text-white"><ICONS.Close /></button>
@@ -1055,7 +1144,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
             <span className="text-gray-500">- list item</span><span className="text-gray-300">bullet</span>
             <span className="text-gray-500">1. item</span><span className="text-gray-300">numbered</span>
             <span className="text-gray-500">- [ ] task</span><span className="text-gray-300">checklist</span>
-            <span className="text-gray-500">`code`</span><span className="text-gray-300 bg-[#1a1a1a] px-1 rounded">code</span>
+            <span className="text-gray-500">`code`</span><span className="text-gray-300 bg-[#1a1a1a] px-1 ">code</span>
             <span className="text-gray-500">```lang</span><span className="text-gray-300">code block</span>
             <span className="text-gray-500">&gt; quote</span><span className="text-gray-300">blockquote</span>
             <span className="text-gray-500">---</span><span className="text-gray-300">divider</span>
@@ -1084,7 +1173,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
                     onKeyDown={(e) => { if (e.key === 'Enter') handleSetGoal(); if (e.key === 'Escape') setShowGoalInput(false); }}
                     placeholder="500"
                     autoFocus
-                    className={`w-12 ${isDark ? 'bg-[#1a1a1a] border-[#333] text-gray-300' : 'bg-gray-100 border-gray-300 text-gray-700'} border rounded px-1 py-0.5 text-[10px] font-mono focus:outline-none focus:border-[#00ff9d]`}
+                    className={`w-12 ${isDark ? 'bg-[#1a1a1a] border-[#333] text-gray-300' : 'bg-gray-100 border-gray-300 text-gray-700'} border  px-1 py-0.5 text-[10px] font-mono focus:outline-none focus:border-[#00ff9d]`}
                   />
                   <button onClick={handleSetGoal} className="text-[#00ff9d] hover:text-white">✓</button>
                   {wordGoal && <button onClick={handleClearGoal} className="text-red-500 hover:text-red-400">✕</button>}
@@ -1172,7 +1261,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
                               <div 
                                 key={res.noteId} 
                                 onClick={() => onSelectNote(res.noteId)}
-                                className="group p-3 rounded bg-[#1a051a] border border-[#330033] hover:border-[#ff00ff] cursor-pointer transition-all hover:bg-[#2a0a2a]"
+                                className="group p-3  bg-[#1a051a] border border-[#330033] hover:border-[#ff00ff] cursor-pointer transition-all hover:bg-[#2a0a2a]"
                               >
                                   <div className="flex justify-between items-start mb-1">
                                       <h4 className="font-bold text-gray-300 group-hover:text-[#ff00ff] text-sm truncate">{targetNote.title || 'Untitled'}</h4>
@@ -1211,7 +1300,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
                           <div
                               key={v.timestamp}
                               onClick={() => setSelectedVersion(selectedVersion?.timestamp === v.timestamp ? null : v)}
-                              className={`p-3 rounded border cursor-pointer transition-all ${selectedVersion?.timestamp === v.timestamp ? 'border-[#ffd93d] bg-[#1a1a0a]' : 'border-[#1a1a2a] hover:border-[#333] bg-[#0a0a0f]'}`}
+                              className={`p-3  border cursor-pointer transition-all ${selectedVersion?.timestamp === v.timestamp ? 'border-[#ffd93d] bg-[#1a1a0a]' : 'border-[#1a1a2a] hover:border-[#333] bg-[#0a0a0f]'}`}
                           >
                               <div className="flex justify-between items-center">
                                   <span className="text-xs text-gray-400">{v.title || 'Untitled'}</span>
@@ -1222,7 +1311,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
                                   <div className="mt-2 flex gap-2">
                                       <button
                                           onClick={(e) => { e.stopPropagation(); onUpdate({ title: v.title, content: v.content }); setShowVersions(false); }}
-                                          className="px-3 py-1 text-[10px] bg-[#ffd93d] text-black rounded font-bold hover:bg-[#ffe066] transition-colors"
+                                          className="px-3 py-1 text-[10px] bg-[#ffd93d] text-black  font-bold hover:bg-[#ffe066] transition-colors"
                                       >
                                           Restore
                                       </button>
@@ -1250,7 +1339,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
                 ) : (
                     variants.map((v, i) => (
                         <div key={i} className="snap-center shrink-0 flex flex-col gap-2 cursor-pointer w-[70vw] md:w-[200px]" onClick={() => handleSelectVariant(v)}>
-                            <img src={v} className="rounded border border-[#333] w-full" />
+                            <img src={v} className=" border border-[#333] w-full" />
                         </div>
                     ))
                 )}
@@ -1262,7 +1351,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
           <div className="fixed inset-0 z-[100] bg-[#030303] flex flex-col animate-zen-fade-in">
               <button
                 onClick={() => setIsZenMode(false)}
-                className="fixed top-4 right-4 z-[101] px-3 py-1.5 rounded text-[10px] font-mono uppercase tracking-widest text-gray-600 hover:text-[#00ff9d] border border-[#1a1a1a] hover:border-[#00ff9d] bg-[#0a0a0a] transition-all"
+                className="fixed top-4 right-4 z-[101] px-3 py-1.5  text-[10px] font-mono uppercase tracking-widest text-gray-600 hover:text-[#00ff9d] border border-[#1a1a1a] hover:border-[#00ff9d] bg-[#0a0a0a] transition-all"
               >
                 Exit Focus
               </button>
@@ -1285,7 +1374,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
                           className="w-full bg-transparent text-base md:text-lg text-gray-300 resize-none focus:outline-none min-h-[70vh] leading-relaxed font-mono pb-20"
                         />
                         {showLinkSuggest && (
-                          <div className="absolute z-50 bg-[#111] border border-[#333] rounded shadow-lg max-w-xs w-64 overflow-hidden" style={{ top: '2rem', left: '1rem' }}>
+                          <div className="absolute z-50 bg-[#111] border border-[#333]  shadow-lg max-w-xs w-64 overflow-hidden" style={{ top: '2rem', left: '1rem' }}>
                             {linkSuggestions.length === 0 ? (
                               <div className="px-3 py-2 text-sm text-gray-500 italic">No matches</div>
                             ) : (
@@ -1302,7 +1391,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
                           </div>
                         )}
                         {showSlashMenu && filteredSlashCommands.length > 0 && (
-                          <div className="absolute z-50 bg-[#111] border border-[#333] rounded-lg shadow-lg w-64 overflow-hidden max-h-80 overflow-y-auto" style={{ top: '2rem', left: '1rem' }}>
+                          <div className="absolute z-50 bg-[#111] border border-[#333]  shadow-lg w-64 overflow-hidden max-h-80 overflow-y-auto" style={{ top: '2rem', left: '1rem' }}>
                             <div className="px-3 py-1.5 text-[10px] text-gray-500 uppercase tracking-widest border-b border-[#222]">Insert Block</div>
                             {filteredSlashCommands.map((cmd, i) => (
                               <div

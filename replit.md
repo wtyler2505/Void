@@ -37,7 +37,7 @@ VOID is a React-based note-taking application with a dark, cyberpunk-inspired UI
     └── IMPROVEMENT_CHECKLIST.md - 100-item feature checklist
 ```
 
-## Implemented Features (36 of 100)
+## Implemented Features (41 of 100)
 - Focus/Zen mode (distraction-free writing)
 - Note templates (6 types: meeting, journal, project, to-do, brain dump, bug report)
 - Global command palette (Cmd+K)
@@ -73,10 +73,16 @@ VOID is a React-based note-taking application with a dark, cyberpunk-inspired UI
 - Breadcrumb navigation (VOID > Notes/Archive/Trash > tag > title)
 - Split-pane editing (two notes side by side)
 - Notification system (set reminders with browser notifications)
+- Tables support (insert and edit markdown tables via toolbar/slash commands)
+- Kanban board view (To Do / In Progress / Done columns with status dropdown)
+- Calendar view (monthly grid showing notes by creation date)
+- Folders / nested folder structure (sidebar section, localStorage persistence)
+- Embeddable links with preview cards (favicon + domain display)
 
 ## Design
 - Cyberpunk aesthetic: #00ff9d primary, #050505 background, JetBrains Mono font
 - Dark/Light theme switcher with preserved green accent
+- Sharp corners throughout (no rounded corners, cyberpunk angular aesthetic)
 
 ## Development
 - **Dev server**: `npm run dev` (port 5000)

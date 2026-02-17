@@ -125,7 +125,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   return (
     <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh] bg-black/90 backdrop-blur-sm animate-fade-in" onClick={onClose}>
       <div
-        className="bg-[#0a0a0a] border border-[#00ff9d] w-full max-w-xl rounded shadow-[0_0_50px_rgba(0,255,157,0.1)] overflow-hidden flex flex-col max-h-[60vh]"
+        className="bg-[#0a0a0a] border border-[#00ff9d] w-full max-w-xl  shadow-[0_0_50px_rgba(0,255,157,0.1)] overflow-hidden flex flex-col max-h-[60vh]"
         onClick={e => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
@@ -139,7 +139,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             placeholder="Type a command or search notes..."
             className="flex-1 bg-transparent text-white text-sm outline-none placeholder-gray-500 font-mono"
           />
-          <kbd className="px-2 py-0.5 bg-[#222] border border-[#333] rounded text-[10px] font-bold text-gray-500 font-mono shrink-0">ESC</kbd>
+          <kbd className="px-2 py-0.5 bg-[#222] border border-[#333]  text-[10px] font-bold text-gray-500 font-mono shrink-0">ESC</kbd>
         </div>
 
         <div ref={listRef} className="overflow-y-auto flex-1">
@@ -162,7 +162,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     <span className={isActive ? 'text-[#00ff9d]' : 'text-gray-500'}>{action.icon}</span>
                     <span className="flex-1 text-sm font-mono">{action.label}</span>
                     {action.shortcut && (
-                      <kbd className="px-2 py-0.5 bg-[#222] border border-[#333] rounded text-[10px] text-gray-500 font-mono">{action.shortcut}</kbd>
+                      <kbd className="px-2 py-0.5 bg-[#222] border border-[#333]  text-[10px] text-gray-500 font-mono">{action.shortcut}</kbd>
                     )}
                   </button>
                 );

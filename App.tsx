@@ -15,6 +15,9 @@ import * as Gemini from './services/gemini';
 import { ICONS } from './constants';
 import { useTheme } from './ThemeContext';
 import { Onboarding } from './components/Onboarding';
+import KanbanBoard from './components/KanbanBoard';
+import CalendarView from './components/CalendarView';
+import { Folder } from './types';
 
 const App: React.FC = () => {
   const { isDark, accentColor } = useTheme();
@@ -47,6 +50,11 @@ const App: React.FC = () => {
   const [isQuickCaptureOpen, setIsQuickCaptureOpen] = useState(false);
   const [quickCaptureTitle, setQuickCaptureTitle] = useState('Quick Note');
   const [quickCaptureContent, setQuickCaptureContent] = useState('');
+  const [folders, setFolders] = useState<Folder[]>(() => {
+    const saved = localStorage.getItem('void_folders');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(() => {
     return !localStorage.getItem('void_onboarding_done');
   });
@@ -136,6 +144,20 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('void_sidebar_width', sidebarWidth.toString());
   }, [sidebarWidth]);
+
+  useEffect(() => {
+    localStorage.setItem('void_folders', JSON.stringify(folders));
+  }, [folders]);
+
+  const handleCreateFolder = useCallback((name: string, parentId?: string) => {
+    const newFolder: Folder = { id: Date.now().toString(), name, parentId, createdAt: Date.now() };
+    setFolders(prev => [...prev, newFolder]);
+  }, []);
+
+  const handleDeleteFolder = useCallback((id: string) => {
+    setFolders(prev => prev.filter(f => f.id !== id));
+    setNotes(prev => prev.map(n => n.folderId === id ? { ...n, folderId: undefined } : n));
+  }, []);
 
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -451,12 +473,19 @@ const App: React.FC = () => {
             onEmptyTrash={handleEmptyTrash}
             onOpenChat={() => { setIsChatOpen(true); setIsSidebarOpen(false); }}
             onToggleLive={() => { setView(v => v === 'live' ? 'editor' : 'live'); setIsSidebarOpen(false); }}
+            onToggleKanban={() => { setView(v => v === 'kanban' ? 'editor' : 'kanban'); setIsSidebarOpen(false); }}
+            onToggleCalendar={() => { setView(v => v === 'calendar' ? 'editor' : 'calendar'); setIsSidebarOpen(false); }}
             onOpenSync={() => { setIsSyncOpen(true); setIsSidebarOpen(false); }}
             onShowShortcuts={() => { setIsShortcutsOpen(true); setIsSidebarOpen(false); }}
             onFuseNotes={handleFuseNotes}
             currentView={view}
             isOpen={isSidebarOpen}
             onClose={() => setIsSidebarOpen(false)}
+            folders={folders}
+            activeFolderId={activeFolderId}
+            onSelectFolder={setActiveFolderId}
+            onCreateFolder={handleCreateFolder}
+            onDeleteFolder={handleDeleteFolder}
           />
       </div>
 
@@ -485,7 +514,7 @@ const App: React.FC = () => {
                     <ICONS.Atom />
                 </div>
                 <h2 className="text-xl md:text-2xl font-bold text-white mt-8 tracking-[0.5em] animate-pulse">NEURAL FUSION</h2>
-                <div className="w-48 md:w-64 h-1 bg-[#333] mt-8 rounded overflow-hidden">
+                <div className="w-48 md:w-64 h-1 bg-[#333] mt-8  overflow-hidden">
                     <div className="h-full bg-[#00ff9d] animate-indeterminate-progress"></div>
                 </div>
             </div>
@@ -515,6 +544,7 @@ const App: React.FC = () => {
                 onOpenChat={() => setIsChatOpen(true)}
                 onSplitNote={setSplitNoteId}
                 splitNoteId={splitNoteId}
+                folders={folders}
               />
             </div>
             {splitNote && (
@@ -528,6 +558,7 @@ const App: React.FC = () => {
                   onOpenChat={() => setIsChatOpen(true)}
                   onSplitNote={setSplitNoteId}
                   splitNoteId={splitNoteId}
+                  folders={folders}
                 />
               </div>
             )}
@@ -536,6 +567,17 @@ const App: React.FC = () => {
           <div className="flex-1 flex items-center justify-center text-gray-600">
             <p>Select a note to begin.</p>
           </div>
+        ) : view === 'calendar' ? (
+          <CalendarView
+            notes={notes}
+            onSelectNote={(id) => { handleSelectNote(id); setView('editor'); }}
+          />
+        ) : view === 'kanban' ? (
+          <KanbanBoard
+            notes={notes}
+            onSelectNote={(id) => { handleSelectNote(id); setView('editor'); }}
+            onUpdateNote={handleUpdateNote}
+          />
         ) : (
           <LiveSession 
              onClose={() => setView('editor')} 
@@ -597,26 +639,26 @@ const App: React.FC = () => {
         {view === 'editor' && !isFusing && !isGenesis && (
           <div className="fixed bottom-6 right-6 z-30">
             {isQuickCaptureOpen && (
-              <div className={`absolute bottom-16 right-0 w-[calc(100vw-3rem)] md:w-80 ${isDark ? 'bg-[#111] border-[#333] shadow-black/80' : 'bg-white border-gray-200 shadow-gray-300/50'} border rounded-lg shadow-2xl p-4 animate-scale-in`} onKeyDown={(e) => { if (e.key === 'Escape') setIsQuickCaptureOpen(false); }}>
+              <div className={`absolute bottom-16 right-0 w-[calc(100vw-3rem)] md:w-80 ${isDark ? 'bg-[#111] border-[#333] shadow-black/80' : 'bg-white border-gray-200 shadow-gray-300/50'} border  shadow-2xl p-4 animate-scale-in`} onKeyDown={(e) => { if (e.key === 'Escape') setIsQuickCaptureOpen(false); }}>
                 <input
                   type="text"
                   value={quickCaptureTitle}
                   onChange={(e) => setQuickCaptureTitle(e.target.value)}
-                  className={`w-full ${isDark ? 'bg-[#1a1a1a] border-[#333] text-white' : 'bg-gray-100 border-gray-300 text-gray-800'} border text-sm rounded px-3 py-1.5 mb-3 focus:outline-none focus:border-[#00ff9d]`}
+                  className={`w-full ${isDark ? 'bg-[#1a1a1a] border-[#333] text-white' : 'bg-gray-100 border-gray-300 text-gray-800'} border text-sm  px-3 py-1.5 mb-3 focus:outline-none focus:border-[#00ff9d]`}
                   placeholder="Title"
                 />
                 <textarea
                   value={quickCaptureContent}
                   onChange={(e) => setQuickCaptureContent(e.target.value)}
-                  className={`w-full ${isDark ? 'bg-[#1a1a1a] border-[#333] text-gray-300' : 'bg-gray-100 border-gray-300 text-gray-700'} border text-sm rounded px-3 py-2 mb-3 focus:outline-none focus:border-[#00ff9d] resize-none`}
+                  className={`w-full ${isDark ? 'bg-[#1a1a1a] border-[#333] text-gray-300' : 'bg-gray-100 border-gray-300 text-gray-700'} border text-sm  px-3 py-2 mb-3 focus:outline-none focus:border-[#00ff9d] resize-none`}
                   rows={4}
                   autoFocus
                   placeholder="Capture your thought..."
                   onKeyDown={(e) => { if (e.key === 'Escape') setIsQuickCaptureOpen(false); }}
                 />
                 <div className="flex justify-end gap-2">
-                  <button onClick={() => setIsQuickCaptureOpen(false)} className="text-gray-400 hover:text-white text-sm px-3 py-2 rounded transition-colors">Cancel</button>
-                  <button onClick={handleQuickCapture} className="bg-[#00ff9d] text-black font-bold rounded px-4 py-2 text-sm hover:bg-[#00e68a] transition-colors">Save</button>
+                  <button onClick={() => setIsQuickCaptureOpen(false)} className="text-gray-400 hover:text-white text-sm px-3 py-2  transition-colors">Cancel</button>
+                  <button onClick={handleQuickCapture} className="bg-[#00ff9d] text-black font-bold  px-4 py-2 text-sm hover:bg-[#00e68a] transition-colors">Save</button>
                 </div>
               </div>
             )}

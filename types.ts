@@ -11,6 +11,15 @@ export interface Note {
   archivedAt?: number;
   trashedAt?: number;
   reminder?: number;
+  status?: 'todo' | 'in_progress' | 'done';
+  folderId?: string;
+}
+
+export interface Folder {
+  id: string;
+  name: string;
+  parentId?: string;
+  createdAt: number;
 }
 
 export interface NoteVersion {
@@ -28,7 +37,7 @@ export interface Attachment {
   metadata?: string; // e.g., prompt used
 }
 
-export type AppView = 'editor' | 'live';
+export type AppView = 'editor' | 'live' | 'kanban' | 'calendar';
 
 export interface ChatMessage {
   id: string;

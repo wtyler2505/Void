@@ -297,7 +297,7 @@ export const ChatOverlay: React.FC<ChatOverlayProps> = ({
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex flex-col bg-[#0a0a0a]/95 backdrop-blur-md md:absolute md:inset-auto md:right-4 md:bottom-4 md:w-[450px] md:h-[650px] md:border md:border-[#00ff9d] md:shadow-[0_0_20px_rgba(0,255,157,0.2)] md:rounded-lg animate-fade-in font-mono">
+        <div className="fixed inset-0 z-50 flex flex-col bg-[#0a0a0a]/95 backdrop-blur-md md:absolute md:inset-auto md:right-4 md:bottom-4 md:w-[450px] md:h-[650px] md:border md:border-[#00ff9d] md:shadow-[0_0_20px_rgba(0,255,157,0.2)] md: animate-fade-in font-mono">
             <div className="p-3 border-b border-[#333] flex justify-between items-center bg-[#050505] shrink-0">
                 <span className="text-[#00ff9d] font-bold text-sm tracking-wider flex items-center gap-2">
                     <ICONS.Sparkle /> VOID OS
@@ -308,7 +308,7 @@ export const ChatOverlay: React.FC<ChatOverlayProps> = ({
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.map(m => (
                     <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[85%] p-3 rounded text-sm relative group ${
+                        <div className={`max-w-[85%] p-3  text-sm relative group ${
                             m.role === 'user' 
                             ? 'bg-[#1a1a1a] text-white border border-[#333]' 
                             : 'bg-[#002b1f]/50 text-[#00ff9d] border border-[#005c3d]'
@@ -334,19 +334,19 @@ export const ChatOverlay: React.FC<ChatOverlayProps> = ({
 
             <div className="p-3 border-t border-[#333] bg-[#050505] shrink-0">
                 <div className="flex gap-2 mb-2">
-                     <button onClick={() => setGroundingEnabled(p => p === 'search' ? 'none' : 'search')} className={`text-[10px] px-2 py-1 rounded border transition-colors ${groundingEnabled === 'search' ? 'bg-blue-900/50 border-blue-500 text-blue-300' : 'border-[#333] text-gray-500'}`}>WEB</button>
-                    <button onClick={() => setGroundingEnabled(p => p === 'maps' ? 'none' : 'maps')} className={`text-[10px] px-2 py-1 rounded border transition-colors ${groundingEnabled === 'maps' ? 'bg-green-900/50 border-green-500 text-green-300' : 'border-[#333] text-gray-500'}`}>MAPS</button>
+                     <button onClick={() => setGroundingEnabled(p => p === 'search' ? 'none' : 'search')} className={`text-[10px] px-2 py-1  border transition-colors ${groundingEnabled === 'search' ? 'bg-blue-900/50 border-blue-500 text-blue-300' : 'border-[#333] text-gray-500'}`}>WEB</button>
+                    <button onClick={() => setGroundingEnabled(p => p === 'maps' ? 'none' : 'maps')} className={`text-[10px] px-2 py-1  border transition-colors ${groundingEnabled === 'maps' ? 'bg-green-900/50 border-green-500 text-green-300' : 'border-[#333] text-gray-500'}`}>MAPS</button>
                 </div>
                 <div className="flex gap-2">
                     <input 
-                        className="flex-1 bg-[#111] border border-[#333] rounded px-3 py-2 text-sm text-white focus:border-[#00ff9d] focus:outline-none transition-all focus:bg-[#000]"
+                        className="flex-1 bg-[#111] border border-[#333]  px-3 py-2 text-sm text-white focus:border-[#00ff9d] focus:outline-none transition-all focus:bg-[#000]"
                         placeholder="Command or Query..."
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                         autoFocus
                     />
-                    <button onClick={handleSend} disabled={loading} className="bg-[#00ff9d] text-black px-4 rounded hover:bg-[#00cc7d] disabled:opacity-50 font-bold transition-colors"><ICONS.Plus /> </button>
+                    <button onClick={handleSend} disabled={loading} className="bg-[#00ff9d] text-black px-4  hover:bg-[#00cc7d] disabled:opacity-50 font-bold transition-colors"><ICONS.Plus /> </button>
                 </div>
             </div>
             <style>{`

@@ -21,9 +21,9 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 - [x] Code syntax highlighting in code blocks
 - [ ] Drag-and-drop image embedding
 - [ ] Drawing / sketching canvas within notes
-- [ ] Tables support (insert and edit tables)
+- [x] Tables support (insert and edit tables)
 - [x] Checklists / to-do lists with progress tracking
-- [ ] Embeddable links with preview cards
+- [x] Embeddable links with preview cards
 - [x] Split-pane editing (two notes side by side)
 - [x] Focus / zen mode (distraction-free writing)
 - [x] Word count goals and writing streaks
@@ -34,7 +34,7 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 - [x] Footnotes and annotations
 
 ## Organization & Navigation
-- [ ] Folders / nested folder structure
+- [x] Folders / nested folder structure
 - [x] Note linking (wiki-style `[[note]]` links between notes)
 - [ ] Knowledge graph visualization of linked notes
 - [x] Pinned / favorited notes *(pre-existing)*
@@ -112,8 +112,8 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 - [x] Pomodoro timer built into the editor
 - [x] Daily journal prompt
 - [ ] Habit tracker widget
-- [ ] Kanban board view for task-oriented notes
-- [ ] Calendar view of notes by date
+- [x] Kanban board view for task-oriented notes
+- [x] Calendar view of notes by date
 - [x] Quick capture — floating button to jot down ideas fast
 - [x] Markdown shortcuts cheat sheet toggle
 

@@ -117,7 +117,7 @@ export const SyncModal: React.FC<SyncModalProps> = ({ notes, onClose, onImport }
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
-            <div className="bg-[#0a0a0a] border border-[#333] w-full max-w-md rounded-lg shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden">
+            <div className="bg-[#0a0a0a] border border-[#333] w-full max-w-md  shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden">
                 <div className="flex items-center justify-between p-4 border-b border-[#333] bg-[#050505]">
                     <h2 className="text-[#00ff9d] font-bold text-lg flex items-center gap-2">
                         <ICONS.Cloud /> DATA LINK
@@ -151,11 +151,11 @@ export const SyncModal: React.FC<SyncModalProps> = ({ notes, onClose, onImport }
                                         value={clientId}
                                         onChange={(e) => setClientId(e.target.value)}
                                         placeholder="784...apps.googleusercontent.com"
-                                        className="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-gray-300 text-sm focus:border-[#00ff9d] focus:outline-none"
+                                        className="w-full bg-[#111] border border-[#333]  px-3 py-2 text-gray-300 text-sm focus:border-[#00ff9d] focus:outline-none"
                                     />
                                     <div className="flex gap-2">
-                                        <button onClick={handleSaveClientId} className="flex-1 bg-[#222] text-xs py-2 rounded hover:bg-[#333] text-gray-300">Save ID</button>
-                                        <button onClick={handleConnectDrive} className="flex-1 bg-[#00ff9d] text-black text-xs font-bold py-2 rounded hover:bg-[#00cc7d]">Connect & Sync</button>
+                                        <button onClick={handleSaveClientId} className="flex-1 bg-[#222] text-xs py-2  hover:bg-[#333] text-gray-300">Save ID</button>
+                                        <button onClick={handleConnectDrive} className="flex-1 bg-[#00ff9d] text-black text-xs font-bold py-2  hover:bg-[#00cc7d]">Connect & Sync</button>
                                     </div>
                                     <p className="text-[10px] text-gray-600 mt-2 leading-relaxed">
                                         Requires a Google Cloud Project with <b>Drive API</b> enabled.
@@ -166,7 +166,7 @@ export const SyncModal: React.FC<SyncModalProps> = ({ notes, onClose, onImport }
 
                             {isDriveReady && (
                                 <div className="space-y-4">
-                                    <div className="p-3 bg-[#111] border border-[#333] rounded">
+                                    <div className="p-3 bg-[#111] border border-[#333] ">
                                         <p className="text-xs text-gray-400 mb-1">Status</p>
                                         <p className="text-[#00ff9d] font-mono text-xs">{status}</p>
                                     </div>
@@ -174,7 +174,7 @@ export const SyncModal: React.FC<SyncModalProps> = ({ notes, onClose, onImport }
                                     <div className="grid grid-cols-2 gap-4">
                                         <button 
                                             onClick={handlePushToCloud}
-                                            className="bg-[#1a1a1a] border border-[#333] hover:border-[#00ff9d] p-4 rounded flex flex-col items-center gap-2 group transition-all"
+                                            className="bg-[#1a1a1a] border border-[#333] hover:border-[#00ff9d] p-4  flex flex-col items-center gap-2 group transition-all"
                                         >
                                             <div className="text-gray-400 group-hover:text-[#00ff9d] rotate-180 transform"><ICONS.Download /></div>
                                             <span className="text-xs font-bold text-gray-300">PUSH Local to Cloud</span>
@@ -183,7 +183,7 @@ export const SyncModal: React.FC<SyncModalProps> = ({ notes, onClose, onImport }
                                         <button 
                                             onClick={handlePullFromCloud}
                                             disabled={!backupFile}
-                                            className="bg-[#1a1a1a] border border-[#333] hover:border-blue-400 p-4 rounded flex flex-col items-center gap-2 group transition-all disabled:opacity-50"
+                                            className="bg-[#1a1a1a] border border-[#333] hover:border-blue-400 p-4  flex flex-col items-center gap-2 group transition-all disabled:opacity-50"
                                         >
                                             <div className="text-gray-400 group-hover:text-blue-400"><ICONS.Download /></div>
                                             <span className="text-xs font-bold text-gray-300">PULL Cloud to Local</span>
@@ -198,13 +198,13 @@ export const SyncModal: React.FC<SyncModalProps> = ({ notes, onClose, onImport }
                         <div className="space-y-6">
                             <button 
                                 onClick={handleExportJson}
-                                className="w-full bg-[#1a1a1a] border border-[#333] hover:border-[#00ff9d] p-4 rounded flex items-center justify-center gap-2 text-gray-300 hover:text-white transition-all"
+                                className="w-full bg-[#1a1a1a] border border-[#333] hover:border-[#00ff9d] p-4  flex items-center justify-center gap-2 text-gray-300 hover:text-white transition-all"
                             >
                                 <ICONS.Download className="rotate-180" /> Export JSON
                             </button>
                             
                             <div className="relative border-t border-[#222] pt-6">
-                                <label className="w-full bg-[#1a1a1a] border border-[#333] hover:border-blue-400 p-4 rounded flex items-center justify-center gap-2 text-gray-300 hover:text-white transition-all cursor-pointer">
+                                <label className="w-full bg-[#1a1a1a] border border-[#333] hover:border-blue-400 p-4  flex items-center justify-center gap-2 text-gray-300 hover:text-white transition-all cursor-pointer">
                                     <ICONS.Download /> Import JSON
                                     <input type="file" accept=".json" onChange={handleImportJson} className="hidden" />
                                 </label>

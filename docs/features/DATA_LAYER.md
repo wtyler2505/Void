@@ -17,6 +17,29 @@ interface Note {
   pinned?: boolean;
   archived?: boolean;
   archivedAt?: number;
+  trashedAt?: number;      // Soft-delete timestamp for trash/restore
+  reminder?: number;       // Reminder timestamp
+  status?: 'todo' | 'in_progress' | 'done'; // Kanban task status
+  folderId?: string;       // Parent folder reference
+}
+```
+
+### The `Folder` Object
+```typescript
+interface Folder {
+  id: string;
+  name: string;
+  parentId?: string;   // Nested folder support
+  createdAt: number;
+}
+```
+
+### The `NoteVersion` Object
+```typescript
+interface NoteVersion {
+  timestamp: number;
+  title: string;
+  content: string;
 }
 ```
 
@@ -25,8 +48,9 @@ interface Note {
 interface Attachment {
   id: string;
   type: 'image' | 'video' | 'audio';
-  url: string;         // Base64 string (Image) or Blob URL (Video)
+  url: string;         // Data URL or Blob URL
   mimeType: string;    // e.g. 'image/png'
+  thumbnailUrl?: string; // Preview thumbnail for video attachments
   metadata?: string;   // Generation prompt
 }
 ```
@@ -40,7 +64,15 @@ Because AI-generated images and videos are large, `LocalStorage` (5MB limit) is 
 *   **Key**: `void_notes_data`
 *   **Format**: The entire `notes` array is serialized and stored as a single entry. While not efficient for 10,000+ notes, it is extremely simple for state management (load all, save all).
 
-## 3. 𝗦𝗬𝗡𝗖 (𝗚𝗢𝗢𝗚𝗟𝗘 𝗗𝗥𝗜𝗩𝗘)
+### Version History
+
+Note version history is stored per-note in IndexedDB via `saveNoteVersion(noteId, version)` and `loadNoteVersions(noteId)` in `services/store.ts`. Each version captures a snapshot of the note's title and content at a point in time, enabling rollback and audit trails.
+
+## 3. 𝗙𝗢𝗟𝗗𝗘𝗥 𝗣𝗘𝗥𝗦𝗜𝗦𝗧𝗘𝗡𝗖𝗘
+
+Folders are persisted separately via `localStorage` under the key `void_folders`. This lightweight storage is sufficient since folders contain only metadata (no heavy media payloads). Notes reference their parent folder via the `folderId` field.
+
+## 4. 𝗦𝗬𝗡𝗖 (𝗚𝗢𝗢𝗚𝗟𝗘 𝗗𝗥𝗜𝗩𝗘)
 
 **File**: `services/drive.ts`
 

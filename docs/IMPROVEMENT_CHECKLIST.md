@@ -2,6 +2,8 @@
 
 A comprehensive checklist of every possible improvement, enhancement, and integration for VOID.
 
+**Progress: 42 of 100 features complete**
+
 ---
 
 ## AI / Intelligence
@@ -108,7 +110,7 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 - [ ] Dropbox / OneDrive sync (beyond Google Drive)
 
 ## Productivity
-- [ ] Reminders and due dates on notes
+- [x] Reminders and due dates on notes
 - [x] Pomodoro timer built into the editor
 - [x] Daily journal prompt
 - [ ] Habit tracker widget

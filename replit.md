@@ -19,15 +19,20 @@ VOID is a React-based note-taking application with a dark, cyberpunk-inspired UI
 ├── constants.tsx   - App constants/icons (TAG_COLORS, ICONS)
 ├── utils.tsx       - Utility functions (templates, formatting, tag colors)
 ├── vite.config.ts  - Vite configuration (port 5000)
+├── ThemeContext.tsx - Theme provider (dark/light, accent color)
 ├── components/     - React components
+│   ├── CalendarView.tsx     - Monthly calendar view of notes
 │   ├── ChatOverlay.tsx      - AI chat sidebar
 │   ├── CommandPalette.tsx   - Quick actions palette (Cmd+K)
 │   ├── Editor.tsx           - Main note editor with toolbar
 │   ├── ExportModal.tsx      - Export/print modal
+│   ├── KanbanBoard.tsx      - Kanban board view (Todo/Progress/Done)
 │   ├── KeyboardShortcutsModal.tsx
 │   ├── LiveSession.tsx      - Real-time AI session
-│   ├── Sidebar.tsx          - Note list, archive, trash, tags
-│   └── SyncModal.tsx        - Google Drive sync
+│   ├── Onboarding.tsx       - 8-step new user tour
+│   ├── Sidebar.tsx          - Note list, archive, trash, tags, folders
+│   ├── SyncModal.tsx        - Google Drive sync
+│   └── VoidLogo.tsx         - SVG logo emblem component
 ├── services/       - Service layer
 │   ├── drive.ts    - Google Drive integration
 │   ├── gemini.ts   - Gemini AI service
@@ -37,7 +42,7 @@ VOID is a React-based note-taking application with a dark, cyberpunk-inspired UI
     └── IMPROVEMENT_CHECKLIST.md - 100-item feature checklist
 ```
 
-## Implemented Features (41 of 100)
+## Implemented Features (42 of 100)
 - Focus/Zen mode (distraction-free writing)
 - Note templates (6 types: meeting, journal, project, to-do, brain dump, bug report)
 - Global command palette (Cmd+K)

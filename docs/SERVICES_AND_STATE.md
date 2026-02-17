@@ -16,6 +16,18 @@ VOID uses a robust, tiered storage architecture to ensure data safety.
 *   **Key**: `void_notes_data`
 *   **Behavior**: Synchronous. Used for fast initial load. However, due to the 5MB limit, it may fail if many images are generated. The system catches quota errors and defaults to IndexedDB transparently.
 
+### Version History
+*   **`saveNoteVersion(noteId, version)`**: Records a `NoteVersion` snapshot (timestamp, title, content) for a given note. Powers the version history/undo timeline in the Editor.
+*   **`loadNoteVersions(noteId)`**: Retrieves all saved versions for a note, enabling rollback and diff viewing.
+
+### Folder Persistence
+*   **Key**: `void_folders` (LocalStorage)
+*   **Behavior**: Folders are stored as a JSON array in `localStorage`. Each `Folder` has an `id`, `name`, optional `parentId` for nesting, and `createdAt` timestamp. Notes reference folders via the `folderId` field.
+
+### Sidebar Width
+*   **Key**: `void_sidebar_width` (LocalStorage)
+*   **Behavior**: User-customizable sidebar width (240-600px range) persisted across sessions.
+
 ### Migration Logic
 The `loadNotes()` function checks for legacy keys (`void_data`, `void_notes`) from previous versions of the app and automatically migrates them to the new structure upon boot.
 
@@ -45,6 +57,19 @@ Manages Google Drive API interactions for cloud sync.
 *   **Logic**:
     *   `checkForBackup`: Searches for the specific filename.
     *   `uploadBackup`: Uses Multipart upload to send JSON metadata + content. Updates existing ID if found, creates new if not.
+
+## 4. 𝗧𝗛𝗘𝗠𝗘 𝗖𝗢𝗡𝗧𝗘𝗫𝗧 (`ThemeContext.tsx`)
+
+A React Context provider that manages visual theming across the entire application.
+
+*   **State**:
+    *   `theme`: `'dark'` | `'light'` — persisted to `localStorage` key `void_theme`.
+    *   `accentColor`: Hex color string (default `#00ff9d`) — persisted to `localStorage` key `void_accent`.
+    *   `isDark`: Derived boolean for conditional styling.
+*   **Side Effects**:
+    *   Sets `data-theme` attribute on `document.documentElement` for CSS targeting.
+    *   Sets `--accent` CSS custom property on `document.documentElement` for global accent access.
+*   **Consumer Hook**: `useTheme()` — components import this to access theme state and mutators (`toggleTheme`, `setAccentColor`).
 
 ---
 *Service Layer Analysis Complete.*

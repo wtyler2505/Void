@@ -1051,7 +1051,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
                   onChange={handleTitleChange}
                   placeholder="Void Entry" 
                   aria-label="Note title"
-                  className={`flex-1 bg-transparent text-2xl md:text-4xl font-bold ${isDark ? 'text-white placeholder-gray-700' : 'text-gray-900 placeholder-gray-400'} focus:outline-none font-mono`}
+                  className={`flex-1 bg-transparent text-2xl md:text-4xl font-bold ${isDark ? 'text-white placeholder-gray-700' : 'text-gray-900 placeholder-gray-400'} focus:outline-none tracking-tight`}
                 />
             </div>
 
@@ -1362,7 +1362,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
                         value={note.title}
                         onChange={handleTitleChange}
                         placeholder="Void Entry"
-                        className="w-full bg-transparent text-2xl md:text-4xl font-bold text-white focus:outline-none placeholder-gray-700 font-mono mb-6"
+                        className="w-full bg-transparent text-2xl md:text-4xl font-bold text-white focus:outline-none placeholder-gray-700 tracking-tight mb-6"
                       />
                       <div className="relative">
                         <textarea

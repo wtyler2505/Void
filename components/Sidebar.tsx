@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Note, AppView } from '../types';
 import { ICONS } from '../constants';
 import { formatTime, NOTE_TEMPLATES, getTagColor, getDailyPrompt } from '../utils';
+import { useTheme } from '../ThemeContext';
 
 interface SidebarProps {
   notes: Note[];
@@ -29,6 +30,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ 
   notes, activeNoteId, onSelectNote, onCreateNote, onCreateNoteFromTemplate, onDeleteNote, onUpdateNote, onArchiveNote, onRestoreNote, onTrashNote, onRestoreFromTrash, onEmptyTrash, onOpenChat, onToggleLive, onOpenSync, onFuseNotes, onShowShortcuts, currentView, isOpen, onClose 
 }) => {
+  const { isDark, toggleTheme } = useTheme();
   const [search, setSearch] = useState('');
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -42,6 +44,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
+  const [viewDensity, setViewDensity] = useState<'compact' | 'comfortable'>(() => {
+    return (localStorage.getItem('void_density') as 'compact' | 'comfortable') || 'comfortable';
+  });
+  const [focusedIndex, setFocusedIndex] = useState(-1);
   const templateRef = useRef<HTMLDivElement>(null);
   const sortRef = useRef<HTMLDivElement>(null);
 
@@ -56,6 +62,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const noteCount = notes.filter(n => !n.archived && !n.trashedAt).length;
   const archivedCount = notes.filter(n => n.archived && !n.trashedAt).length;
   const trashedCount = notes.filter(n => !!n.trashedAt).length;
+
+  useEffect(() => {
+    localStorage.setItem('void_density', viewDensity);
+  }, [viewDensity]);
+
+  useEffect(() => {
+    setFocusedIndex(-1);
+  }, [search]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -206,10 +220,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
       }
   };
 
+  const handleKeyNavigation = (e: React.KeyboardEvent) => {
+    const noteList = activeNotes;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setFocusedIndex(prev => Math.min(prev + 1, noteList.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setFocusedIndex(prev => Math.max(prev - 1, 0));
+    } else if (e.key === 'Enter' && focusedIndex >= 0 && focusedIndex < noteList.length) {
+      e.preventDefault();
+      onSelectNote(noteList[focusedIndex].id);
+    }
+  };
+
   return (
-    <aside className="w-full h-full flex flex-col bg-[#0a0a0a] z-10">
+    <aside role="navigation" aria-label="Note sidebar" className={`w-full h-full flex flex-col ${isDark ? 'bg-[#0a0a0a]' : 'bg-white'} z-10`}>
       {/* Header */}
-      <div className="p-4 border-b border-[#1a1a1a]">
+      <div className={`p-4 border-b ${isDark ? 'border-[#1a1a1a]' : 'border-gray-200'}`}>
         <div className="flex justify-between items-center mb-4">
             <h1 className="text-3xl font-bold tracking-tighter text-[#00ff9d] neon-text hidden md:block">VOID</h1>
             {/* Mobile Close Button */}
@@ -230,42 +258,45 @@ export const Sidebar: React.FC<SidebarProps> = ({
             placeholder="Search... (Ctrl+F)" 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 bg-[#111] border border-[#333] rounded px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-[#00ff9d] transition-colors"
+            aria-label="Search notes"
+            className={`flex-1 ${isDark ? 'bg-[#111] border-[#333] text-gray-300' : 'bg-gray-100 border-gray-300 text-gray-700'} border rounded px-3 py-2 text-sm focus:outline-none focus:border-[#00ff9d] transition-colors`}
           />
           <div className="relative" ref={sortRef}>
             <button
               onClick={() => setIsSortOpen(!isSortOpen)}
-              className={`px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded hover:border-[#00ff9d] transition-all flex items-center justify-center ${isSortOpen ? 'border-[#00ff9d]' : ''}`}
+              className={`px-3 py-2 ${isDark ? 'bg-[#1a1a1a] border-[#333]' : 'bg-gray-100 border-gray-300'} border rounded hover:border-[#00ff9d] transition-all flex items-center justify-center ${isSortOpen ? 'border-[#00ff9d]' : ''}`}
               title="Sort"
+              aria-label="Sort notes"
+              aria-expanded={isSortOpen}
             >
               <ICONS.Sort className="w-4 h-4" />
             </button>
             {isSortOpen && (
-              <div className="absolute top-full right-0 mt-1 w-48 bg-[#111] border border-[#333] rounded shadow-lg shadow-black/50 z-50 py-1">
+              <div className={`absolute top-full right-0 mt-1 w-48 ${isDark ? 'bg-[#111] border-[#333] shadow-black/50' : 'bg-white border-gray-200 shadow-gray-300/50'} border rounded shadow-lg z-50 py-1`}>
                 <button
                   onClick={() => { setSortBy('updated'); setIsSortOpen(false); }}
-                  className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors ${sortBy === 'updated' ? 'text-[#00ff9d] bg-[#1a1a1a]' : 'text-gray-400 hover:text-gray-300 hover:bg-[#0a0a0a]'}`}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors ${sortBy === 'updated' ? `text-[#00ff9d] ${isDark ? 'bg-[#1a1a1a]' : 'bg-gray-100'}` : `${isDark ? 'text-gray-400 hover:text-gray-300 hover:bg-[#0a0a0a]' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}`}
                 >
                   <span>Last Updated</span>
                   {sortBy === 'updated' && <span className="text-[#00ff9d]">•</span>}
                 </button>
                 <button
                   onClick={() => { setSortBy('created'); setIsSortOpen(false); }}
-                  className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors ${sortBy === 'created' ? 'text-[#00ff9d] bg-[#1a1a1a]' : 'text-gray-400 hover:text-gray-300 hover:bg-[#0a0a0a]'}`}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors ${sortBy === 'created' ? `text-[#00ff9d] ${isDark ? 'bg-[#1a1a1a]' : 'bg-gray-100'}` : `${isDark ? 'text-gray-400 hover:text-gray-300 hover:bg-[#0a0a0a]' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}`}
                 >
                   <span>Recently Created</span>
                   {sortBy === 'created' && <span className="text-[#00ff9d]">•</span>}
                 </button>
                 <button
                   onClick={() => { setSortBy('alphabetical'); setIsSortOpen(false); }}
-                  className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors ${sortBy === 'alphabetical' ? 'text-[#00ff9d] bg-[#1a1a1a]' : 'text-gray-400 hover:text-gray-300 hover:bg-[#0a0a0a]'}`}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors ${sortBy === 'alphabetical' ? `text-[#00ff9d] ${isDark ? 'bg-[#1a1a1a]' : 'bg-gray-100'}` : `${isDark ? 'text-gray-400 hover:text-gray-300 hover:bg-[#0a0a0a]' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}`}
                 >
                   <span>Alphabetical (A-Z)</span>
                   {sortBy === 'alphabetical' && <span className="text-[#00ff9d]">•</span>}
                 </button>
                 <button
                   onClick={() => { setSortBy('size'); setIsSortOpen(false); }}
-                  className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors ${sortBy === 'size' ? 'text-[#00ff9d] bg-[#1a1a1a]' : 'text-gray-400 hover:text-gray-300 hover:bg-[#0a0a0a]'}`}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-xs transition-colors ${sortBy === 'size' ? `text-[#00ff9d] ${isDark ? 'bg-[#1a1a1a]' : 'bg-gray-100'}` : `${isDark ? 'text-gray-400 hover:text-gray-300 hover:bg-[#0a0a0a]' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}`}
                 >
                   <span>Content Length</span>
                   {sortBy === 'size' && <span className="text-[#00ff9d]">•</span>}
@@ -274,9 +305,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
           </div>
           <button
+            onClick={() => setViewDensity(d => d === 'compact' ? 'comfortable' : 'compact')}
+            className={`px-3 py-2 ${isDark ? 'bg-[#1a1a1a] border-[#333]' : 'bg-gray-100 border-gray-300'} border rounded hover:border-[#00ff9d] transition-all flex items-center justify-center text-gray-400 hover:text-[#00ff9d]`}
+            title={viewDensity === 'compact' ? 'Comfortable view' : 'Compact view'}
+            aria-label={viewDensity === 'compact' ? 'Comfortable view' : 'Compact view'}
+          >
+            {viewDensity === 'compact' ? (
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+            )}
+          </button>
+          <button
             onClick={() => { setIsMultiSelectMode(!isMultiSelectMode); setSelectedNoteIds(new Set()); }}
-            className={`px-3 py-2 border border-[#333] rounded transition-all flex items-center justify-center ${isMultiSelectMode ? 'bg-[#002b1f] border-[#00ff9d] text-[#00ff9d]' : 'bg-[#1a1a1a] hover:border-[#00ff9d] text-gray-400 hover:text-[#00ff9d]'}`}
+            className={`px-3 py-2 border rounded transition-all flex items-center justify-center ${isMultiSelectMode ? 'bg-[#002b1f] border-[#00ff9d] text-[#00ff9d]' : `${isDark ? 'bg-[#1a1a1a] border-[#333]' : 'bg-gray-100 border-gray-300'} hover:border-[#00ff9d] text-gray-400 hover:text-[#00ff9d]`}`}
             title="Multi-select"
+            aria-label="Multi-select"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
           </button>
@@ -287,7 +331,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="flex gap-2 overflow-x-auto pb-2 mb-2 no-scrollbar">
                 <button 
                     onClick={() => setTagFilter(null)}
-                    className={`shrink-0 px-2 py-1 rounded text-[10px] uppercase font-bold border transition-colors ${!tagFilter ? 'bg-[#00ff9d] text-black border-[#00ff9d]' : 'bg-[#111] text-gray-500 border-[#333]'}`}
+                    className={`shrink-0 px-2 py-1 rounded text-[10px] uppercase font-bold border transition-colors ${!tagFilter ? 'bg-[#00ff9d] text-black border-[#00ff9d]' : `${isDark ? 'bg-[#111] border-[#333]' : 'bg-gray-100 border-gray-300'} text-gray-500`}`}
                 >
                     All
                 </button>
@@ -297,7 +341,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <button 
                         key={tag}
                         onClick={() => setTagFilter(tag === tagFilter ? null : tag)}
-                        className={`shrink-0 px-2 py-1 rounded text-[10px] border transition-colors ${tagFilter === tag ? 'text-white border-2' : 'bg-[#111] text-gray-400 border-[#333] hover:border-gray-500'}`}
+                        className={`shrink-0 px-2 py-1 rounded text-[10px] border transition-colors ${tagFilter === tag ? 'text-white border-2' : `${isDark ? 'bg-[#111] border-[#333]' : 'bg-gray-100 border-gray-300'} text-gray-400 hover:border-gray-500`}`}
                         style={{
                           borderColor: tagFilter === tag ? tagColor : undefined,
                           backgroundColor: tagFilter === tag ? `${tagColor}20` : undefined,
@@ -313,11 +357,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <div className="grid grid-cols-4 gap-2">
             <div className="relative flex" ref={templateRef}>
-                <button onClick={onCreateNote} className="flex-1 flex items-center justify-center bg-[#1a1a1a] hover:bg-[#222] text-white py-2 rounded-l border border-r-0 border-[#333] transition-all hover:border-[#00ff9d] text-sm group" title="New Note (Ctrl+N)"><ICONS.Plus /></button>
-                <button onClick={() => setIsTemplateOpen(!isTemplateOpen)} className={`flex items-center justify-center px-1 bg-[#1a1a1a] hover:bg-[#222] text-gray-500 py-2 rounded-r border border-[#333] transition-all hover:border-[#00ff9d] hover:text-[#00ff9d] text-[10px] ${isTemplateOpen ? 'border-[#00ff9d] text-[#00ff9d]' : ''}`} title="New from Template">▼</button>
+                <button onClick={onCreateNote} aria-label="Create new note" className={`flex-1 flex items-center justify-center ${isDark ? 'bg-[#1a1a1a] hover:bg-[#222] border-[#333] text-white' : 'bg-gray-100 hover:bg-gray-200 border-gray-300 text-gray-800'} py-2 rounded-l border border-r-0 transition-all hover:border-[#00ff9d] text-sm group`} title="New Note (Ctrl+N)"><ICONS.Plus /></button>
+                <button onClick={() => setIsTemplateOpen(!isTemplateOpen)} aria-label="New from template" aria-expanded={isTemplateOpen} className={`flex items-center justify-center px-1 ${isDark ? 'bg-[#1a1a1a] hover:bg-[#222] border-[#333]' : 'bg-gray-100 hover:bg-gray-200 border-gray-300'} text-gray-500 py-2 rounded-r border transition-all hover:border-[#00ff9d] hover:text-[#00ff9d] text-[10px] ${isTemplateOpen ? 'border-[#00ff9d] text-[#00ff9d]' : ''}`} title="New from Template">▼</button>
                 {isTemplateOpen && (
-                    <div className="absolute top-full left-0 mt-1 w-56 bg-[#111] border border-[#333] rounded shadow-lg shadow-black/50 z-50 py-1">
-                        <div className="px-3 py-2 text-[10px] text-gray-500 uppercase tracking-widest border-b border-[#222]">Templates</div>
+                    <div className={`absolute top-full left-0 mt-1 w-56 ${isDark ? 'bg-[#111] border-[#333] shadow-black/50' : 'bg-white border-gray-200 shadow-gray-300/50'} border rounded shadow-lg z-50 py-1`}>
+                        <div className={`px-3 py-2 text-[10px] text-gray-500 uppercase tracking-widest border-b ${isDark ? 'border-[#222]' : 'border-gray-200'}`}>Templates</div>
                         {NOTE_TEMPLATES.map(template => (
                             <button
                                 key={template.id}
@@ -325,7 +369,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     onCreateNoteFromTemplate(template.name, template.content);
                                     setIsTemplateOpen(false);
                                 }}
-                                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-300 hover:bg-[#1a1a1a] hover:border-l-2 hover:border-l-[#00ff9d] hover:text-[#00ff9d] transition-all border-l-2 border-l-transparent"
+                                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm ${isDark ? 'text-gray-300 hover:bg-[#1a1a1a]' : 'text-gray-600 hover:bg-gray-50'} hover:border-l-2 hover:border-l-[#00ff9d] hover:text-[#00ff9d] transition-all border-l-2 border-l-transparent`}
                             >
                                 <span className="text-base">{template.icon}</span>
                                 <span>{template.name}</span>
@@ -334,9 +378,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </div>
                 )}
             </div>
-            <button onClick={() => { setIsFusionMode(!isFusionMode); setFusionSourceId(null); }} className={`flex items-center justify-center gap-2 py-2 rounded border transition-all text-sm ${isFusionMode ? 'bg-[#002b1f] border-[#00ff9d] text-[#00ff9d] animate-pulse' : 'bg-[#1a1a1a] hover:bg-[#222] border-[#333] text-gray-300 hover:text-[#00ff9d]'}`} title="Neural Fusion"><ICONS.Atom /></button>
-             <button onClick={onToggleLive} className={`flex items-center justify-center gap-2 py-2 rounded border transition-all text-sm ${currentView === 'live' ? 'bg-[#2a002a] border-[#ff00ff] text-[#ff00ff]' : 'bg-[#1a1a1a] hover:bg-[#222] border-[#333] text-gray-300 hover:text-[#ff00ff]'}`} title="Live"><ICONS.Live /></button>
-            <button onClick={onOpenSync} className="flex items-center justify-center gap-2 bg-[#1a1a1a] hover:bg-[#222] text-white py-2 rounded border border-[#333] transition-all hover:border-blue-400 text-sm hover:text-blue-400" title="Sync"><ICONS.Cloud /></button>
+            <button onClick={() => { setIsFusionMode(!isFusionMode); setFusionSourceId(null); }} aria-label="Neural Fusion" className={`flex items-center justify-center gap-2 py-2 rounded border transition-all text-sm ${isFusionMode ? 'bg-[#002b1f] border-[#00ff9d] text-[#00ff9d] animate-pulse' : `${isDark ? 'bg-[#1a1a1a] hover:bg-[#222] border-[#333]' : 'bg-gray-100 hover:bg-gray-200 border-gray-300'} text-gray-300 hover:text-[#00ff9d]`}`} title="Neural Fusion"><ICONS.Atom /></button>
+             <button onClick={onToggleLive} aria-label="Live session" className={`flex items-center justify-center gap-2 py-2 rounded border transition-all text-sm ${currentView === 'live' ? 'bg-[#2a002a] border-[#ff00ff] text-[#ff00ff]' : `${isDark ? 'bg-[#1a1a1a] hover:bg-[#222] border-[#333]' : 'bg-gray-100 hover:bg-gray-200 border-gray-300'} text-gray-300 hover:text-[#ff00ff]`}`} title="Live"><ICONS.Live /></button>
+            <button onClick={onOpenSync} aria-label="Sync" className={`flex items-center justify-center gap-2 ${isDark ? 'bg-[#1a1a1a] hover:bg-[#222] border-[#333] text-white' : 'bg-gray-100 hover:bg-gray-200 border-gray-300 text-gray-800'} py-2 rounded border transition-all hover:border-blue-400 text-sm hover:text-blue-400`} title="Sync"><ICONS.Cloud /></button>
         </div>
         
         {isFusionMode && (
@@ -354,7 +398,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               `## ${today}\n\n**Prompt:** *${prompt}*\n\n`
             );
           }}
-          className="w-full flex items-center gap-2 px-3 py-2 mt-2 mb-2 text-sm text-gray-400 hover:text-[#ffd93d] bg-[#1a1a1a] border border-[#333] rounded hover:border-[#ffd93d] transition-all"
+          className={`w-full flex items-center gap-2 px-3 py-2 mt-2 mb-2 text-sm text-gray-400 hover:text-[#ffd93d] ${isDark ? 'bg-[#1a1a1a] border-[#333]' : 'bg-gray-100 border-gray-300'} border rounded hover:border-[#ffd93d] transition-all`}
         >
           <span>📔</span>
           <span className="flex-1 text-left">Daily Journal</span>
@@ -362,9 +406,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" role="listbox" aria-label="Notes list" onKeyDown={handleKeyNavigation} tabIndex={0}>
         {activeNotes.length > 3 && (
-          <div className="px-4 py-2 border-b border-[#111]">
+          <div className={`px-4 py-2 border-b ${isDark ? 'border-[#111]' : 'border-gray-100'}`}>
             <div className="text-[10px] text-gray-600 uppercase tracking-widest mb-1.5">Recent</div>
             <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
               {[...activeNotes].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 5).map(n => (
@@ -374,7 +418,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className={`shrink-0 px-2.5 py-1 rounded text-[10px] border transition-all truncate max-w-[120px] ${
                     activeNoteId === n.id 
                       ? 'bg-[#00ff9d]/10 border-[#00ff9d]/50 text-[#00ff9d]' 
-                      : 'bg-[#111] border-[#222] text-gray-400 hover:border-[#333] hover:text-gray-300'
+                      : `${isDark ? 'bg-[#111] border-[#222]' : 'bg-gray-100 border-gray-200'} text-gray-400 hover:border-[#333] hover:text-gray-300`
                   }`}
                 >
                   {n.title || 'Untitled'}
@@ -385,7 +429,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         {isMultiSelectMode && selectedNoteIds.size > 0 && (
-          <div className="flex items-center gap-2 p-2 bg-[#0a0a0a] border-b border-[#1a1a1a]">
+          <div className={`flex items-center gap-2 p-2 ${isDark ? 'bg-[#0a0a0a] border-[#1a1a1a]' : 'bg-white border-gray-200'} border-b`}>
             <span className="text-[10px] text-[#00ff9d] font-mono">{selectedNoteIds.size} selected</span>
             <button
               onClick={() => {
@@ -435,18 +479,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
           return (
             <React.Fragment key={note.id}>
               <div 
+                role="option"
+                aria-selected={activeNoteId === note.id}
                 draggable={!isFusionMode}
                 onDragStart={(e) => handleDragStart(e, note.id)}
                 onDragOver={(e) => handleDragOver(e, note.id)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, note.id)}
                 onClick={() => handleNoteClick(note.id)}
-                className={`group p-4 border-b border-[#111] cursor-pointer hover:bg-[#111] transition-all relative flex flex-col gap-2
-                    ${activeNoteId === note.id && !isFusionMode ? 'bg-[#111] border-l-2 border-l-[#00ff9d]' : 'border-l-2 border-l-transparent'}
+                className={`group ${viewDensity === 'compact' ? 'p-2' : 'p-4'} border-b ${isDark ? 'border-[#111]' : 'border-gray-100'} cursor-pointer ${isDark ? 'hover:bg-[#111]' : 'hover:bg-gray-50'} transition-all relative flex flex-col ${viewDensity === 'compact' ? 'gap-1' : 'gap-2'} animate-fade-in
+                    ${activeNoteId === note.id && !isFusionMode ? `${isDark ? 'bg-[#111]' : 'bg-gray-50'} border-l-2 border-l-[#00ff9d]` : 'border-l-2 border-l-transparent'}
                     ${dragOverId === note.id ? 'bg-[#0f0] bg-opacity-10 border-2 border-dashed border-[#00ff9d]' : ''}
                     ${isFusionMode && fusionSourceId === note.id ? 'bg-[#002b1f] border-2 border-[#00ff9d]' : ''}
                     ${isFusionMode && fusionSourceId !== note.id ? 'hover:border-[#00ff9d] hover:border-dashed border-2 border-transparent' : ''}
+                    ${focusedIndex === idx ? 'ring-1 ring-[#00ff9d]/50' : ''}
                 `}
+                style={{ animationDelay: `${idx * 0.02}s` }}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-2 max-w-[70%]">
@@ -484,13 +532,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   )}
                 </div>
                 
-                <p className="text-xs text-gray-500 truncate">
-                  {note.content.substring(0, 50) || 'Empty...'}
-                </p>
+                {viewDensity === 'comfortable' && (
+                  <p className="text-xs text-gray-500 truncate">
+                    {note.content.substring(0, 50) || 'Empty...'}
+                  </p>
+                )}
 
-                {/* Tag List */}
                 {(note.tags.length > 0 || activeNoteId === note.id) && (
-                     <div className="flex flex-wrap gap-1 items-center mt-1">
+                     <div className={`flex flex-wrap gap-1 items-center ${viewDensity === 'compact' ? '' : 'mt-1'}`}>
                          {note.tags.map(tag => {
                            const tagColor = getTagColor(tag);
                            return (
@@ -530,17 +579,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                      </div>
                 )}
                 
-                <div className="flex justify-between items-center mt-1">
-                   <span className="text-[10px] text-gray-600 font-mono">{formatTime(note.updatedAt)}</span>
-                   {note.attachments.length > 0 && <span className="text-[10px] bg-[#1a1a1a] text-gray-400 px-1 rounded">Media</span>}
+                <div className={`flex justify-between items-center ${viewDensity === 'compact' ? '' : 'mt-1'}`}>
+                   <span className={`${viewDensity === 'compact' ? 'text-[8px]' : 'text-[10px]'} text-gray-600 font-mono`}>{formatTime(note.updatedAt)}</span>
+                   {note.attachments.length > 0 && <span className={`text-[10px] ${isDark ? 'bg-[#1a1a1a]' : 'bg-gray-100'} text-gray-400 px-1 rounded`}>Media</span>}
                 </div>
               </div>
               
               {showSeparator && (
                   <div className="flex items-center gap-4 px-4 py-2 opacity-50">
-                       <div className="h-[1px] bg-[#333] flex-1"></div>
-                       <ICONS.Pin className="w-3 h-3 text-[#333]" />
-                       <div className="h-[1px] bg-[#333] flex-1"></div>
+                       <div className={`h-[1px] ${isDark ? 'bg-[#333]' : 'bg-gray-300'} flex-1`}></div>
+                       <ICONS.Pin className={`w-3 h-3 ${isDark ? 'text-[#333]' : 'text-gray-300'}`} />
+                       <div className={`h-[1px] ${isDark ? 'bg-[#333]' : 'bg-gray-300'} flex-1`}></div>
                   </div>
               )}
             </React.Fragment>
@@ -549,10 +598,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Archived Section */}
         {archivedNotes.length > 0 && (
-            <div className="mt-4 border-t border-[#1a1a1a]">
+            <div className={`mt-4 border-t ${isDark ? 'border-[#1a1a1a]' : 'border-gray-200'}`}>
                 <button 
                     onClick={() => setIsArchiveOpen(!isArchiveOpen)}
-                    className="w-full flex items-center justify-between p-3 text-xs text-gray-500 hover:text-gray-300 hover:bg-[#111] transition-colors uppercase tracking-wider"
+                    className={`w-full flex items-center justify-between p-3 text-xs text-gray-500 hover:text-gray-300 ${isDark ? 'hover:bg-[#111]' : 'hover:bg-gray-50'} transition-colors uppercase tracking-wider`}
                 >
                     <span>Archived ({archivedNotes.length})</span>
                     <span className={`transform transition-transform ${isArchiveOpen ? 'rotate-180' : ''}`}>▼</span>
@@ -561,7 +610,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {isArchiveOpen && archivedNotes.map(note => (
                     <div 
                         key={note.id}
-                        className="group p-3 border-b border-[#111] bg-[#0c0c0c] hover:bg-[#111] relative flex flex-col gap-1 opacity-60 hover:opacity-100 transition-all cursor-default"
+                        className={`group p-3 border-b ${isDark ? 'border-[#111] bg-[#0c0c0c] hover:bg-[#111]' : 'border-gray-100 bg-gray-50 hover:bg-gray-100'} relative flex flex-col gap-1 opacity-60 hover:opacity-100 transition-all cursor-default`}
                     >
                         <div className="flex justify-between items-center">
                             <h3 className="font-bold text-gray-400 truncate text-sm">{note.title || 'Untitled'}</h3>
@@ -589,10 +638,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         {trashedNotes.length > 0 && (
-            <div className="mt-4 border-t border-[#1a1a1a]">
+            <div className={`mt-4 border-t ${isDark ? 'border-[#1a1a1a]' : 'border-gray-200'}`}>
                 <button 
                     onClick={() => setIsTrashOpen(!isTrashOpen)}
-                    className="w-full flex items-center justify-between p-3 text-xs text-red-500/70 hover:text-red-400 hover:bg-[#111] transition-colors uppercase tracking-wider"
+                    className={`w-full flex items-center justify-between p-3 text-xs text-red-500/70 hover:text-red-400 ${isDark ? 'hover:bg-[#111]' : 'hover:bg-gray-50'} transition-colors uppercase tracking-wider`}
                 >
                     <span className="flex items-center gap-2"><ICONS.Trash className="w-3.5 h-3.5" /> Trash ({trashedNotes.length})</span>
                     <span className={`transform transition-transform ${isTrashOpen ? 'rotate-180' : ''}`}>▼</span>
@@ -606,14 +655,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     onEmptyTrash();
                                 }
                             }}
-                            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-[10px] text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors uppercase tracking-widest border-b border-[#1a1a1a]"
+                            className={`w-full flex items-center justify-center gap-2 px-3 py-2 text-[10px] text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors uppercase tracking-widest border-b ${isDark ? 'border-[#1a1a1a]' : 'border-gray-200'}`}
                         >
                             <ICONS.Trash className="w-3 h-3" /> Empty Trash
                         </button>
                         {trashedNotes.map(note => (
                             <div 
                                 key={note.id}
-                                className="group p-3 border-b border-[#111] bg-[#0c0c0c] hover:bg-[#111] relative flex flex-col gap-1 opacity-60 hover:opacity-100 transition-all cursor-default"
+                                className={`group p-3 border-b ${isDark ? 'border-[#111] bg-[#0c0c0c] hover:bg-[#111]' : 'border-gray-100 bg-gray-50 hover:bg-gray-100'} relative flex flex-col gap-1 opacity-60 hover:opacity-100 transition-all cursor-default`}
                             >
                                 <div className="flex justify-between items-center">
                                     <h3 className="font-bold text-gray-400 truncate text-sm">{note.title || 'Untitled'}</h3>
@@ -643,17 +692,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
       </div>
 
-      <div className="p-4 border-t border-[#1a1a1a]">
+      <div className={`p-4 border-t ${isDark ? 'border-[#1a1a1a]' : 'border-gray-200'}`}>
         <div className="flex justify-between items-center text-[10px] text-gray-600 font-mono mb-3 px-1">
           <span>{noteCount} notes{archivedCount > 0 ? ` · ${archivedCount} archived` : ''}{trashedCount > 0 ? ` · ${trashedCount} trashed` : ''}</span>
           <span>{storageSize}</span>
         </div>
         <div className="flex gap-2">
-          <button onClick={onOpenChat} className="flex-1 flex items-center justify-center gap-2 bg-[#00ff9d] text-black font-bold py-3 rounded hover:bg-[#00cc7d] transition-colors shadow-[0_0_10px_rgba(0,255,157,0.3)]">
+          <button onClick={onOpenChat} aria-label="Open AI Assistant" className="flex-1 flex items-center justify-center gap-2 bg-[#00ff9d] text-black font-bold py-3 rounded hover:bg-[#00cc7d] transition-colors shadow-[0_0_10px_rgba(0,255,157,0.3)]">
               <ICONS.Chat /> AI Assistant
           </button>
+          <button 
+            onClick={toggleTheme} 
+            className={`p-3 rounded-lg border transition-colors ${isDark ? 'border-[#333] text-gray-400 hover:text-[#ffd93d]' : 'border-gray-300 text-gray-500 hover:text-[#ffd93d]'}`}
+            title={isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
+            aria-label={isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
+          >
+            {isDark ? (
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            )}
+          </button>
           {onShowShortcuts && (
-              <button onClick={onShowShortcuts} className="w-12 flex items-center justify-center bg-[#1a1a1a] border border-[#333] rounded hover:border-[#00ff9d] hover:text-[#00ff9d] transition-colors" title="Shortcuts (Ctrl+/)">
+              <button onClick={onShowShortcuts} aria-label="Keyboard shortcuts" className={`w-12 flex items-center justify-center ${isDark ? 'bg-[#1a1a1a] border-[#333]' : 'bg-gray-100 border-gray-300'} border rounded hover:border-[#00ff9d] hover:text-[#00ff9d] transition-colors`} title="Shortcuts (Ctrl+/)">
                   <ICONS.Keyboard />
               </button>
           )}

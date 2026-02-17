@@ -83,16 +83,16 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 - [ ] File attachments (PDFs, spreadsheets, etc.)
 
 ## UI / UX
-- [ ] Light theme / theme switcher
+- [x] Light theme / theme switcher
 - [ ] Custom theme editor (pick your own neon colors)
 - [x] Responsive mobile layout improvements
 - [ ] PWA support (installable on phone/desktop)
 - [ ] Customizable sidebar width
-- [ ] Compact vs. comfortable view density
-- [ ] Animated transitions and micro-interactions
+- [x] Compact vs. comfortable view density
+- [x] Animated transitions and micro-interactions
 - [ ] Breadcrumb navigation
 - [x] Global command palette (Cmd+K)
-- [ ] Onboarding walkthrough for new users
+- [x] Onboarding walkthrough for new users
 - [ ] Notification system for reminders and events
 
 ## Integrations
@@ -123,5 +123,5 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 - [ ] Service worker for true offline support
 - [ ] Database migration from IndexedDB to server-side Postgres
 - [ ] Rate limiting and error retry for API calls
-- [ ] Accessibility improvements (screen reader support, ARIA labels)
-- [ ] Keyboard navigation improvements
+- [x] Accessibility improvements (screen reader support, ARIA labels)
+- [x] Keyboard navigation improvements

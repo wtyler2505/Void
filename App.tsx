@@ -13,8 +13,11 @@ import { CommandPalette } from './components/CommandPalette';
 import { useGlobalShortcuts } from './services/shortcuts';
 import * as Gemini from './services/gemini';
 import { ICONS } from './constants';
+import { useTheme } from './ThemeContext';
+import { Onboarding } from './components/Onboarding';
 
 const App: React.FC = () => {
+  const { isDark } = useTheme();
   const [isStorageReady, setIsStorageReady] = useState(false);
   
   // 1. Initialize with empty, wait for DB
@@ -37,6 +40,14 @@ const App: React.FC = () => {
   const [isQuickCaptureOpen, setIsQuickCaptureOpen] = useState(false);
   const [quickCaptureTitle, setQuickCaptureTitle] = useState('Quick Note');
   const [quickCaptureContent, setQuickCaptureContent] = useState('');
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    return !localStorage.getItem('void_onboarding_done');
+  });
+
+  const handleOnboardingComplete = useCallback(() => {
+    localStorage.setItem('void_onboarding_done', 'true');
+    setShowOnboarding(false);
+  }, []);
 
   const notesRef = useRef(notes);
   useEffect(() => { notesRef.current = notes; }, [notes]);
@@ -335,7 +346,7 @@ const App: React.FC = () => {
 
   if (!isStorageReady) {
       return (
-          <div className="h-screen w-full bg-[#050505] flex flex-col items-center justify-center text-[#00ff9d]">
+          <div className={`h-screen w-full ${isDark ? 'bg-[#050505]' : 'bg-[#f5f5f0]'} flex flex-col items-center justify-center text-[#00ff9d]`}>
               <ICONS.Atom />
               <p className="mt-4 font-mono text-sm tracking-widest animate-pulse">RECALLING MEMORY BLOCKS...</p>
           </div>
@@ -343,10 +354,10 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[#050505] text-gray-200 selection:bg-[#00ff9d] selection:text-black flex-col md:flex-row">
+    <div className={`flex h-screen w-full overflow-hidden ${isDark ? 'bg-[#050505] text-gray-200' : 'bg-[#f5f5f0] text-gray-800'} selection:bg-[#00ff9d] selection:text-black flex-col md:flex-row`}>
       
       {/* Mobile Header */}
-      <div className="md:hidden flex items-center justify-between p-4 bg-[#0a0a0a] border-b border-[#1a1a1a] z-30 shrink-0">
+      <div className={`md:hidden flex items-center justify-between p-4 ${isDark ? 'bg-[#0a0a0a] border-[#1a1a1a]' : 'bg-white border-gray-200'} border-b z-30 shrink-0`}>
           <button onClick={() => setIsSidebarOpen(true)} className="text-[#00ff9d]">
               <ICONS.Menu />
           </button>
@@ -356,7 +367,7 @@ const App: React.FC = () => {
 
       {/* Sidebar - Mobile Drawer / Desktop Sidebar */}
       <div className={`
-            fixed inset-y-0 left-0 z-40 w-80 bg-[#0a0a0a] transform transition-transform duration-300 ease-in-out border-r border-[#1a1a1a]
+            fixed inset-y-0 left-0 z-40 w-80 ${isDark ? 'bg-[#0a0a0a] border-[#1a1a1a]' : 'bg-white border-gray-200'} transform transition-transform duration-300 ease-in-out border-r
             md:relative md:translate-x-0
             ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
@@ -392,10 +403,10 @@ const App: React.FC = () => {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col h-full relative overflow-hidden">
+      <main role="main" className="flex-1 flex flex-col h-full relative overflow-hidden">
         {/* Fusion Effect */}
         {isFusing && (
-            <div className="absolute inset-0 z-50 bg-black/90 flex flex-col items-center justify-center backdrop-blur-md">
+            <div aria-hidden="true" className="absolute inset-0 z-50 bg-black/90 flex flex-col items-center justify-center backdrop-blur-md">
                 <div className="relative">
                     <div className="absolute inset-0 bg-[#00ff9d] blur-[50px] opacity-20 animate-pulse"></div>
                     <ICONS.Atom />
@@ -409,7 +420,7 @@ const App: React.FC = () => {
 
         {/* Genesis Effect */}
         {isGenesis && (
-            <div className="absolute inset-0 z-50 pointer-events-none flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px]">
+            <div aria-hidden="true" className="absolute inset-0 z-50 pointer-events-none flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px]">
                  <div className="flex flex-col items-center gap-4 animate-bounce-in">
                     <div className="text-[#00ff9d] drop-shadow-[0_0_15px_rgba(0,255,157,0.8)]">
                         <ICONS.Sparkle width="48" height="48" />
@@ -493,18 +504,18 @@ const App: React.FC = () => {
         {view === 'editor' && !isFusing && !isGenesis && (
           <div className="fixed bottom-6 right-6 z-30">
             {isQuickCaptureOpen && (
-              <div className="absolute bottom-16 right-0 w-[calc(100vw-3rem)] md:w-80 bg-[#111] border border-[#333] rounded-lg shadow-2xl shadow-black/80 p-4" onKeyDown={(e) => { if (e.key === 'Escape') setIsQuickCaptureOpen(false); }}>
+              <div className={`absolute bottom-16 right-0 w-[calc(100vw-3rem)] md:w-80 ${isDark ? 'bg-[#111] border-[#333] shadow-black/80' : 'bg-white border-gray-200 shadow-gray-300/50'} border rounded-lg shadow-2xl p-4 animate-scale-in`} onKeyDown={(e) => { if (e.key === 'Escape') setIsQuickCaptureOpen(false); }}>
                 <input
                   type="text"
                   value={quickCaptureTitle}
                   onChange={(e) => setQuickCaptureTitle(e.target.value)}
-                  className="w-full bg-[#1a1a1a] border border-[#333] text-white text-sm rounded px-3 py-1.5 mb-3 focus:outline-none focus:border-[#00ff9d]"
+                  className={`w-full ${isDark ? 'bg-[#1a1a1a] border-[#333] text-white' : 'bg-gray-100 border-gray-300 text-gray-800'} border text-sm rounded px-3 py-1.5 mb-3 focus:outline-none focus:border-[#00ff9d]`}
                   placeholder="Title"
                 />
                 <textarea
                   value={quickCaptureContent}
                   onChange={(e) => setQuickCaptureContent(e.target.value)}
-                  className="w-full bg-[#1a1a1a] border border-[#333] text-gray-300 text-sm rounded px-3 py-2 mb-3 focus:outline-none focus:border-[#00ff9d] resize-none"
+                  className={`w-full ${isDark ? 'bg-[#1a1a1a] border-[#333] text-gray-300' : 'bg-gray-100 border-gray-300 text-gray-700'} border text-sm rounded px-3 py-2 mb-3 focus:outline-none focus:border-[#00ff9d] resize-none`}
                   rows={4}
                   autoFocus
                   placeholder="Capture your thought..."
@@ -520,6 +531,7 @@ const App: React.FC = () => {
               onClick={() => setIsQuickCaptureOpen(!isQuickCaptureOpen)}
               className="w-12 h-12 rounded-full bg-[#00ff9d] text-black shadow-[0_0_20px_rgba(0,255,157,0.4)] hover:shadow-[0_0_30px_rgba(0,255,157,0.6)] flex items-center justify-center transition-all hover:scale-110"
               title="Quick Capture"
+              aria-label="Quick capture"
             >
               <ICONS.Bolt />
             </button>
@@ -531,6 +543,7 @@ const App: React.FC = () => {
         )}
       </main>
       
+      {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
       <style>{`
         @keyframes indeterminate-progress {
             0% { transform: translateX(-100%); }
@@ -547,6 +560,41 @@ const App: React.FC = () => {
         }
         .animate-bounce-in {
             animation: bounce-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fade-in 0.2s ease-out forwards;
+        }
+        @keyframes slide-in-right {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .animate-slide-in-right {
+            animation: slide-in-right 0.25s ease-out forwards;
+        }
+        @keyframes slide-in-left {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .animate-slide-in-left {
+            animation: slide-in-left 0.25s ease-out forwards;
+        }
+        @keyframes scale-in {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .animate-scale-in {
+            animation: scale-in 0.15s ease-out forwards;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 5px rgba(0,255,157,0.3); }
+            50% { box-shadow: 0 0 20px rgba(0,255,157,0.6); }
+        }
+        .animate-pulse-glow {
+            animation: pulse-glow 2s infinite;
         }
       `}</style>
     </div>

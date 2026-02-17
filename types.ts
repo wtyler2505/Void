@@ -10,6 +10,7 @@ export interface Note {
   archived?: boolean;
   archivedAt?: number;
   trashedAt?: number;
+  reminder?: number;
 }
 
 export interface NoteVersion {

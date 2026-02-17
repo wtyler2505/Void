@@ -24,7 +24,7 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 - [ ] Tables support (insert and edit tables)
 - [x] Checklists / to-do lists with progress tracking
 - [ ] Embeddable links with preview cards
-- [ ] Split-pane editing (two notes side by side)
+- [x] Split-pane editing (two notes side by side)
 - [x] Focus / zen mode (distraction-free writing)
 - [x] Word count goals and writing streaks
 - [x] Version history / undo timeline per note
@@ -84,16 +84,16 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 
 ## UI / UX
 - [x] Light theme / theme switcher
-- [ ] Custom theme editor (pick your own neon colors)
+- [x] Custom theme editor (pick your own neon colors)
 - [x] Responsive mobile layout improvements
 - [ ] PWA support (installable on phone/desktop)
-- [ ] Customizable sidebar width
+- [x] Customizable sidebar width
 - [x] Compact vs. comfortable view density
 - [x] Animated transitions and micro-interactions
-- [ ] Breadcrumb navigation
+- [x] Breadcrumb navigation
 - [x] Global command palette (Cmd+K)
 - [x] Onboarding walkthrough for new users
-- [ ] Notification system for reminders and events
+- [x] Notification system for reminders and events
 
 ## Integrations
 - [ ] Stripe — premium tier with payment processing

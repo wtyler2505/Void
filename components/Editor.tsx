@@ -16,9 +16,11 @@ interface EditorProps {
   onSelectNote: (id: string) => void;
   onExport: () => void;
   onOpenChat: () => void;
+  onSplitNote?: (id: string) => void;
+  splitNoteId?: string | null;
 }
 
-export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSelectNote, onExport, onOpenChat }) => {
+export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSelectNote, onExport, onOpenChat, onSplitNote, splitNoteId }) => {
   const { isDark } = useTheme();
   const [isThinking, setIsThinking] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -66,6 +68,10 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
   const [showVersions, setShowVersions] = useState(false);
   const [versions, setVersions] = useState<NoteVersion[]>([]);
   const [selectedVersion, setSelectedVersion] = useState<NoteVersion | null>(null);
+
+  const [showReminderPicker, setShowReminderPicker] = useState(false);
+  const [reminderDate, setReminderDate] = useState('');
+  const [reminderTime, setReminderTime] = useState('');
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -801,6 +807,23 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
             <button onClick={handleGenerateVideo} disabled={isProcessing} aria-label="Generate video" className={`p-2 rounded ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-purple-400 disabled:opacity-50`}><ICONS.Video /></button>
             <button onClick={handleTTS} disabled={isProcessing} aria-label="Text to speech" className={`p-2 rounded ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-pink-400 disabled:opacity-50`}><ICONS.Speaker /></button>
             <button onClick={() => setShowPreview(!showPreview)} aria-label="Toggle preview" className={`p-2 rounded ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} transition-colors ${showPreview ? 'text-[#00ff9d]' : 'text-gray-400'}`} title="Toggle Preview"><ICONS.Columns /></button>
+            {onSplitNote && (
+              <button 
+                onClick={() => {
+                  const otherNotes = allNotes.filter(n => n.id !== note.id && !n.archived && !n.trashedAt);
+                  if (splitNoteId) {
+                    onSplitNote(splitNoteId);
+                  } else if (otherNotes.length > 0) {
+                    onSplitNote(otherNotes[0].id);
+                  }
+                }}
+                aria-label="Split pane"
+                className={`p-2 rounded ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} transition-colors ${splitNoteId ? 'text-[#00d2ff]' : 'text-gray-400 hover:text-[#00d2ff]'}`}
+                title={splitNoteId ? 'Close Split View' : 'Split View'}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+              </button>
+            )}
             <button onClick={toggleHaunt} disabled={isProcessing} aria-label="Find related notes" className={`p-2 rounded ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} transition-colors disabled:opacity-50 ${showHauntPanel ? 'text-[#ff00ff] bg-[#1a051a]' : 'text-gray-400 hover:text-[#ff00ff]'}`} title="Haunt (Find Related)"><ICONS.Ghost /></button>
             <button onClick={() => setIsZenMode(true)} aria-label="Focus mode" className={`p-2 rounded ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-gray-400 hover:text-[#00ff9d] transition-colors`} title="Focus Mode"><ICONS.Focus /></button>
             <button onClick={() => setPomodoroActive(!pomodoroActive)} aria-label="Pomodoro timer" className={`p-2 rounded ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} transition-colors ${pomodoroActive ? 'text-[#ff6b6b]' : 'text-gray-400 hover:text-[#ff6b6b]'}`} title="Pomodoro Timer">
@@ -828,6 +851,14 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
               setSelectedVersion(null);
             }} aria-label="Version history" className={`p-2 rounded ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} transition-colors ${showVersions ? 'text-[#ffd93d]' : 'text-gray-400 hover:text-[#ffd93d]'}`} title="Version History">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v5h5"></path><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path><path d="M12 7v5l4 2"></path></svg>
+            </button>
+            <button 
+              onClick={() => setShowReminderPicker(!showReminderPicker)}
+              aria-label="Set reminder"
+              className={`p-2 rounded ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} transition-colors ${note.reminder ? 'text-[#ff9f43]' : 'text-gray-400 hover:text-[#ff9f43]'}`}
+              title={note.reminder ? `Reminder: ${new Date(note.reminder).toLocaleString()}` : 'Set Reminder'}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
             </button>
         </div>
         
@@ -857,10 +888,73 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
             <span className="hidden md:inline">Thinking</span>
             <span className="md:hidden">Think</span>
         </label>
+
+        {showReminderPicker && (
+          <div className={`absolute top-[53px] right-4 z-50 ${isDark ? 'bg-[#111] border-[#333]' : 'bg-white border-gray-200'} border rounded-lg shadow-xl p-4 w-64 animate-scale-in`}>
+            <h4 className={`text-xs font-bold uppercase tracking-wider mb-3 ${isDark ? 'text-[#ff9f43]' : 'text-orange-500'}`}>Set Reminder</h4>
+            <div className="space-y-2">
+              <input 
+                type="date" 
+                value={reminderDate} 
+                onChange={(e) => setReminderDate(e.target.value)}
+                className={`w-full ${isDark ? 'bg-[#1a1a1a] border-[#333] text-gray-300' : 'bg-gray-100 border-gray-200 text-gray-800'} border rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#ff9f43]`}
+              />
+              <input 
+                type="time" 
+                value={reminderTime} 
+                onChange={(e) => setReminderTime(e.target.value)}
+                className={`w-full ${isDark ? 'bg-[#1a1a1a] border-[#333] text-gray-300' : 'bg-gray-100 border-gray-200 text-gray-800'} border rounded px-3 py-1.5 text-sm focus:outline-none focus:border-[#ff9f43]`}
+              />
+            </div>
+            <div className="flex justify-between items-center mt-3">
+              {note.reminder && (
+                <button 
+                  onClick={() => { onUpdate({ reminder: undefined }); setShowReminderPicker(false); }}
+                  className="text-red-400 hover:text-red-300 text-[10px] uppercase"
+                >Clear</button>
+              )}
+              <div className="flex gap-2 ml-auto">
+                <button onClick={() => setShowReminderPicker(false)} className="text-gray-500 hover:text-gray-300 text-xs">Cancel</button>
+                <button 
+                  onClick={() => {
+                    if (reminderDate && reminderTime) {
+                      const ts = new Date(`${reminderDate}T${reminderTime}`).getTime();
+                      onUpdate({ reminder: ts });
+                      setShowReminderPicker(false);
+                      setReminderDate('');
+                      setReminderTime('');
+                    }
+                  }}
+                  className="bg-[#ff9f43] text-black font-bold px-3 py-1 rounded text-xs hover:bg-[#ffb366]"
+                >Set</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 md:p-8 max-w-4xl mx-auto w-full z-0 relative flex">
         <div className="flex-1 min-w-0">
+            {/* Breadcrumb Navigation */}
+            <div className={`flex items-center gap-1 text-[10px] font-mono mb-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+              <span className="hover:text-[#00ff9d] cursor-default">VOID</span>
+              <span>›</span>
+              {note.archived ? (
+                <span className="text-yellow-600">Archive</span>
+              ) : note.trashedAt ? (
+                <span className="text-red-500">Trash</span>
+              ) : (
+                <span>Notes</span>
+              )}
+              <span>›</span>
+              {note.tags.length > 0 && (
+                <>
+                  <span className="text-[#00ff9d]/70">{note.tags[0]}</span>
+                  <span>›</span>
+                </>
+              )}
+              <span className={`truncate max-w-[200px] ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{note.title || 'Untitled'}</span>
+            </div>
             <div className="flex items-center gap-2 mb-4 md:mb-6">
                 <input 
                   type="text" 

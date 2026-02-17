@@ -17,7 +17,7 @@ import { useTheme } from './ThemeContext';
 import { Onboarding } from './components/Onboarding';
 
 const App: React.FC = () => {
-  const { isDark } = useTheme();
+  const { isDark, accentColor } = useTheme();
   const [isStorageReady, setIsStorageReady] = useState(false);
   
   // 1. Initialize with empty, wait for DB
@@ -36,6 +36,13 @@ const App: React.FC = () => {
   const [isFusing, setIsFusing] = useState(false);
   const [isGenesis, setIsGenesis] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    const saved = localStorage.getItem('void_sidebar_width');
+    return saved ? parseInt(saved, 10) : 320;
+  });
+  const isResizingRef = useRef(false);
+  const startXRef = useRef(0);
+  const startWidthRef = useRef(0);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isQuickCaptureOpen, setIsQuickCaptureOpen] = useState(false);
   const [quickCaptureTitle, setQuickCaptureTitle] = useState('Quick Note');
@@ -48,6 +55,33 @@ const App: React.FC = () => {
     localStorage.setItem('void_onboarding_done', 'true');
     setShowOnboarding(false);
   }, []);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isResizingRef.current = true;
+    startXRef.current = e.clientX;
+    startWidthRef.current = sidebarWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizingRef.current) return;
+      const diff = e.clientX - startXRef.current;
+      const newWidth = Math.max(240, Math.min(600, startWidthRef.current + diff));
+      setSidebarWidth(newWidth);
+    };
+    
+    const handleMouseUp = () => {
+      isResizingRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [sidebarWidth]);
 
   const notesRef = useRef(notes);
   useEffect(() => { notesRef.current = notes; }, [notes]);
@@ -100,6 +134,10 @@ const App: React.FC = () => {
   }, [activeNoteId]);
 
   useEffect(() => {
+    localStorage.setItem('void_sidebar_width', sidebarWidth.toString());
+  }, [sidebarWidth]);
+
+  useEffect(() => {
     const handleBeforeUnload = () => {
         if (notesRef.current.length > 0) {
             saveNotes(notesRef.current);
@@ -108,6 +146,9 @@ const App: React.FC = () => {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
+
+  const [splitNoteId, setSplitNoteId] = useState<string | null>(null);
+  const splitNote = splitNoteId ? notes.find(n => n.id === splitNoteId) || null : null;
 
   const activeNote = notes.find(n => n.id === activeNoteId) || null;
 
@@ -298,6 +339,30 @@ const App: React.FC = () => {
       }
   }, [notes]);
 
+  useEffect(() => {
+    if (!('Notification' in window)) return;
+    
+    const checkReminders = () => {
+      const now = Date.now();
+      notesRef.current.forEach(note => {
+        if (note.reminder && note.reminder <= now && note.reminder > now - 60000) {
+          if (Notification.permission === 'granted') {
+            new Notification('VOID Reminder', { body: note.title || 'Untitled Note', icon: '/favicon.ico' });
+          }
+          handleUpdateNote(note.id, { reminder: undefined });
+        }
+      });
+    };
+    
+    if (Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+    
+    const interval = setInterval(checkReminders, 30000);
+    checkReminders();
+    return () => clearInterval(interval);
+  }, [handleUpdateNote]);
+
   // Keyboard Shortcuts Integration
   useGlobalShortcuts({
     onNewNote: handleCreateNote,
@@ -367,10 +432,10 @@ const App: React.FC = () => {
 
       {/* Sidebar - Mobile Drawer / Desktop Sidebar */}
       <div className={`
-            fixed inset-y-0 left-0 z-40 w-80 ${isDark ? 'bg-[#0a0a0a] border-[#1a1a1a]' : 'bg-white border-gray-200'} transform transition-transform duration-300 ease-in-out border-r
+            fixed inset-y-0 left-0 z-40 ${isDark ? 'bg-[#0a0a0a] border-[#1a1a1a]' : 'bg-white border-gray-200'} transform transition-transform duration-300 ease-in-out border-r
             md:relative md:translate-x-0
             ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-      `}>
+      `} style={{ width: `${sidebarWidth}px` }}>
           <Sidebar 
             notes={notes} 
             activeNoteId={activeNoteId} 
@@ -393,6 +458,14 @@ const App: React.FC = () => {
             isOpen={isSidebarOpen}
             onClose={() => setIsSidebarOpen(false)}
           />
+      </div>
+
+      {/* Resize Handle - Desktop Only */}
+      <div 
+        className="hidden md:flex items-center justify-center w-1 hover:w-2 cursor-col-resize group z-30 transition-all"
+        onMouseDown={handleResizeStart}
+      >
+        <div className={`w-0.5 h-8 rounded-full ${isDark ? 'bg-[#333] group-hover:bg-[#00ff9d]' : 'bg-gray-300 group-hover:bg-[#00ff9d]'} transition-colors`}></div>
       </div>
 
       {isSidebarOpen && (
@@ -431,14 +504,34 @@ const App: React.FC = () => {
         )}
 
         {view === 'editor' && activeNote ? (
-          <Editor 
-            note={activeNote} 
-            allNotes={notes}
-            onUpdate={(updates) => handleUpdateNote(activeNote.id, updates)} 
-            onSelectNote={handleSelectNote}
-            onExport={() => setIsExportOpen(true)}
-            onOpenChat={() => setIsChatOpen(true)}
-          />
+          <div className="flex-1 flex h-full overflow-hidden">
+            <div className={`${splitNote ? 'w-full md:w-1/2 border-r' : 'w-full'} ${isDark ? 'border-[#1a1a1a]' : 'border-gray-200'} h-full overflow-hidden`}>
+              <Editor 
+                note={activeNote} 
+                allNotes={notes}
+                onUpdate={(updates) => handleUpdateNote(activeNote.id, updates)} 
+                onSelectNote={handleSelectNote}
+                onExport={() => setIsExportOpen(true)}
+                onOpenChat={() => setIsChatOpen(true)}
+                onSplitNote={setSplitNoteId}
+                splitNoteId={splitNoteId}
+              />
+            </div>
+            {splitNote && (
+              <div className={`hidden md:block w-1/2 h-full overflow-hidden`}>
+                <Editor 
+                  note={splitNote} 
+                  allNotes={notes}
+                  onUpdate={(updates) => handleUpdateNote(splitNote.id, updates)} 
+                  onSelectNote={handleSelectNote}
+                  onExport={() => setIsExportOpen(true)}
+                  onOpenChat={() => setIsChatOpen(true)}
+                  onSplitNote={setSplitNoteId}
+                  splitNoteId={splitNoteId}
+                />
+              </div>
+            )}
+          </div>
         ) : view === 'editor' && !activeNote ? (
           <div className="flex-1 flex items-center justify-center text-gray-600">
             <p>Select a note to begin.</p>
@@ -529,7 +622,8 @@ const App: React.FC = () => {
             )}
             <button
               onClick={() => setIsQuickCaptureOpen(!isQuickCaptureOpen)}
-              className="w-12 h-12 rounded-full bg-[#00ff9d] text-black shadow-[0_0_20px_rgba(0,255,157,0.4)] hover:shadow-[0_0_30px_rgba(0,255,157,0.6)] flex items-center justify-center transition-all hover:scale-110"
+              className="w-12 h-12 rounded-full text-black flex items-center justify-center transition-all hover:scale-110"
+              style={{ backgroundColor: accentColor, boxShadow: `0 0 20px ${accentColor}66` }}
               title="Quick Capture"
               aria-label="Quick capture"
             >

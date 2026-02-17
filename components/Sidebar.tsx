@@ -30,7 +30,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ 
   notes, activeNoteId, onSelectNote, onCreateNote, onCreateNoteFromTemplate, onDeleteNote, onUpdateNote, onArchiveNote, onRestoreNote, onTrashNote, onRestoreFromTrash, onEmptyTrash, onOpenChat, onToggleLive, onOpenSync, onFuseNotes, onShowShortcuts, currentView, isOpen, onClose 
 }) => {
-  const { isDark, toggleTheme } = useTheme();
+  const { isDark, toggleTheme, accentColor, setAccentColor } = useTheme();
   const [search, setSearch] = useState('');
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -42,6 +42,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [isTemplateOpen, setIsTemplateOpen] = useState(false);
   const [sortBy, setSortBy] = useState<'updated' | 'created' | 'alphabetical' | 'size'>('updated');
   const [isSortOpen, setIsSortOpen] = useState(false);
+  const [showThemeEditor, setShowThemeEditor] = useState(false);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
   const [viewDensity, setViewDensity] = useState<'compact' | 'comfortable'>(() => {
@@ -239,7 +240,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Header */}
       <div className={`p-4 border-b ${isDark ? 'border-[#1a1a1a]' : 'border-gray-200'}`}>
         <div className="flex justify-between items-center mb-4">
-            <h1 className="text-3xl font-bold tracking-tighter text-[#00ff9d] neon-text hidden md:block">VOID</h1>
+            <h1 className="text-3xl font-bold tracking-tighter neon-text hidden md:block" style={{ color: accentColor }}>VOID</h1>
             {/* Mobile Close Button */}
             <div className="md:hidden flex items-center gap-2 text-[#00ff9d] font-bold">
                  <ICONS.Sparkle /> MENU
@@ -521,6 +522,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           >
                               <ICONS.Pin className={isPinned ? "fill-[#00ff9d]/20" : ""} />
                           </button>
+                          {note.reminder && (
+                            <span className="text-[#ff9f43]" title={`Reminder: ${new Date(note.reminder).toLocaleString()}`}>
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+                            </span>
+                          )}
                           <button 
                             onClick={(e) => { e.stopPropagation(); onArchiveNote(note.id); }}
                             className="md:opacity-0 group-hover:opacity-100 text-gray-500 hover:text-white transition-opacity p-1"
@@ -692,13 +698,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
       </div>
 
-      <div className={`p-4 border-t ${isDark ? 'border-[#1a1a1a]' : 'border-gray-200'}`}>
+      <div className={`p-4 border-t ${isDark ? 'border-[#1a1a1a]' : 'border-gray-200'} relative`}>
         <div className="flex justify-between items-center text-[10px] text-gray-600 font-mono mb-3 px-1">
           <span>{noteCount} notes{archivedCount > 0 ? ` · ${archivedCount} archived` : ''}{trashedCount > 0 ? ` · ${trashedCount} trashed` : ''}</span>
           <span>{storageSize}</span>
         </div>
         <div className="flex gap-2">
-          <button onClick={onOpenChat} aria-label="Open AI Assistant" className="flex-1 flex items-center justify-center gap-2 bg-[#00ff9d] text-black font-bold py-3 rounded hover:bg-[#00cc7d] transition-colors shadow-[0_0_10px_rgba(0,255,157,0.3)]">
+          <button onClick={onOpenChat} aria-label="Open AI Assistant" className="flex-1 flex items-center justify-center gap-2 text-black font-bold py-3 rounded transition-colors" style={{ backgroundColor: accentColor, boxShadow: `0 0 10px ${accentColor}40` }}>
               <ICONS.Chat /> AI Assistant
           </button>
           <button 
@@ -713,12 +719,47 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
             )}
           </button>
+          <button 
+            onClick={() => setShowThemeEditor(!showThemeEditor)}
+            className={`p-3 rounded-lg border transition-colors ${isDark ? 'border-[#333] text-gray-400 hover:text-white' : 'border-gray-300 text-gray-500 hover:text-gray-800'}`}
+            title="Theme Editor"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5"></circle><circle cx="17.5" cy="10.5" r=".5"></circle><circle cx="8.5" cy="7.5" r=".5"></circle><circle cx="6.5" cy="12.5" r=".5"></circle><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path></svg>
+          </button>
           {onShowShortcuts && (
               <button onClick={onShowShortcuts} aria-label="Keyboard shortcuts" className={`w-12 flex items-center justify-center ${isDark ? 'bg-[#1a1a1a] border-[#333]' : 'bg-gray-100 border-gray-300'} border rounded hover:border-[#00ff9d] hover:text-[#00ff9d] transition-colors`} title="Shortcuts (Ctrl+/)">
                   <ICONS.Keyboard />
               </button>
           )}
         </div>
+        {showThemeEditor && (
+          <div className={`absolute bottom-16 left-4 right-4 z-50 ${isDark ? 'bg-[#111] border-[#333]' : 'bg-white border-gray-200'} border rounded-lg shadow-xl p-4 animate-scale-in`}>
+            <div className="flex justify-between items-center mb-3">
+              <h4 className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-white' : 'text-gray-800'}`}>Accent Color</h4>
+              <button onClick={() => setShowThemeEditor(false)} className="text-gray-500 hover:text-white"><ICONS.Close /></button>
+            </div>
+            <div className="grid grid-cols-6 gap-2 mb-3">
+              {['#00ff9d', '#00d2ff', '#ff6b6b', '#ffd93d', '#c084fc', '#ff6bcb', '#ff9f43', '#54a0ff', '#01a3a4', '#f368e0', '#10ac84', '#ee5a24'].map(color => (
+                <button
+                  key={color}
+                  onClick={() => setAccentColor(color)}
+                  className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${accentColor === color ? 'border-white scale-110 shadow-lg' : 'border-transparent'}`}
+                  style={{ backgroundColor: color, boxShadow: accentColor === color ? `0 0 12px ${color}` : 'none' }}
+                />
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <label className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'} uppercase`}>Custom:</label>
+              <input 
+                type="color" 
+                value={accentColor} 
+                onChange={(e) => setAccentColor(e.target.value)}
+                className="w-8 h-8 rounded cursor-pointer border-0 bg-transparent"
+              />
+              <span className={`text-[10px] font-mono ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{accentColor}</span>
+            </div>
+          </div>
+        )}
       </div>
       <style>{`.no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }`}</style>
     </aside>

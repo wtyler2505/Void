@@ -25,10 +25,10 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 - [ ] Checklists / to-do lists with progress tracking
 - [ ] Embeddable links with preview cards
 - [ ] Split-pane editing (two notes side by side)
-- [ ] Focus / zen mode (distraction-free writing)
-- [ ] Word count goals and writing streaks
+- [x] Focus / zen mode (distraction-free writing)
+- [x] Word count goals and writing streaks
 - [ ] Version history / undo timeline per note
-- [ ] Templates (meeting notes, journal, project plan, etc.)
+- [x] Templates (meeting notes, journal, project plan, etc.)
 - [ ] Slash commands (type `/` to insert blocks)
 - [ ] Collapsible sections / folding
 - [ ] Footnotes and annotations
@@ -37,11 +37,11 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 - [ ] Folders / nested folder structure
 - [ ] Note linking (wiki-style `[[note]]` links between notes)
 - [ ] Knowledge graph visualization of linked notes
-- [ ] Pinned / favorited notes
-- [ ] Archive functionality (hide without deleting)
+- [x] Pinned / favorited notes *(pre-existing)*
+- [x] Archive functionality (hide without deleting) *(pre-existing)*
 - [ ] Bulk actions (multi-select, delete, tag, move)
-- [ ] Custom sort options (alphabetical, size, last edited)
-- [ ] Color-coded tags or labels
+- [x] Custom sort options (alphabetical, size, last edited)
+- [x] Color-coded tags or labels
 - [ ] Note categories beyond tags
 - [ ] Recent notes / quick access panel
 
@@ -67,7 +67,7 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 ## Export & Sharing
 - [ ] Export to PDF with styled formatting
 - [ ] Export to DOCX (Word)
-- [ ] Export to HTML
+- [x] Export to HTML
 - [ ] Print-friendly view
 - [ ] Email a note directly
 - [ ] Publish notes as a blog / public page
@@ -91,7 +91,7 @@ A comprehensive checklist of every possible improvement, enhancement, and integr
 - [ ] Compact vs. comfortable view density
 - [ ] Animated transitions and micro-interactions
 - [ ] Breadcrumb navigation
-- [ ] Global command palette (Cmd+K)
+- [x] Global command palette (Cmd+K)
 - [ ] Onboarding walkthrough for new users
 - [ ] Notification system for reminders and events
 

@@ -9,6 +9,7 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({ 
   const shortcuts = [
     { keys: ['Ctrl', 'N'], desc: 'New Note' },
     { keys: ['Ctrl', 'S'], desc: 'Force Save' },
+    { keys: ['Ctrl', 'K'], desc: 'Command Palette' },
     { keys: ['Ctrl', 'F'], desc: 'Search' },
     { keys: ['Ctrl', 'Shift', 'E'], desc: 'Export Note' },
     { keys: ['Ctrl', 'Del'], desc: 'Archive Note' },

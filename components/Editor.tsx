@@ -27,23 +27,36 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
   const [variants, setVariants] = useState<string[]>([]);
   const [variantPrompt, setVariantPrompt] = useState('');
 
+  const [isZenMode, setIsZenMode] = useState(false);
+  const zenTextareaRef = useRef<HTMLTextAreaElement>(null);
+
   // Haunt State
   const [showHauntPanel, setShowHauntPanel] = useState(false);
   const [isHaunting, setIsHaunting] = useState(false);
   const [hauntResults, setHauntResults] = useState<Gemini.RelatedNoteResult[]>([]);
 
+  const [wordGoal, setWordGoal] = useState<number | null>(null);
+  const [showGoalInput, setShowGoalInput] = useState(false);
+  const [goalInputValue, setGoalInputValue] = useState('');
+  const [streak, setStreak] = useState(0);
+  const [longestStreak, setLongestStreak] = useState(0);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const streakTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Auto-resize textarea
   useLayoutEffect(() => {
     if (textareaRef.current) {
-      // Reset height to auto to correctly calculate scrollHeight when content shrinks
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
-  }, [note.content, showPreview]);
+    if (zenTextareaRef.current) {
+      zenTextareaRef.current.style.height = 'auto';
+      zenTextareaRef.current.style.height = `${zenTextareaRef.current.scrollHeight}px`;
+    }
+  }, [note.content, showPreview, isZenMode]);
 
   // Update current time every minute for "Last saved" display
   useEffect(() => {
@@ -82,7 +95,108 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
     return () => clearTimeout(timer);
   }, [note.content, note.title, isProcessing, onUpdate]);
 
-  // Visual Save Indicator Helper
+  useEffect(() => {
+    const stored = localStorage.getItem(`void_goal_${note.id}`);
+    if (stored) {
+      setWordGoal(parseInt(stored, 10));
+    } else {
+      setWordGoal(null);
+    }
+    setShowGoalInput(false);
+  }, [note.id]);
+
+  const getToday = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const loadStreak = () => {
+    try {
+      const raw = localStorage.getItem('void_writing_streak');
+      if (raw) {
+        const data = JSON.parse(raw);
+        const today = getToday();
+        const last = data.lastWriteDate;
+        if (last === today) {
+          setStreak(data.streak);
+          setLongestStreak(data.longestStreak);
+        } else {
+          const lastDate = new Date(last + 'T00:00:00');
+          const todayDate = new Date(today + 'T00:00:00');
+          const diff = Math.floor((todayDate.getTime() - lastDate.getTime()) / 86400000);
+          if (diff === 1) {
+            setStreak(data.streak);
+            setLongestStreak(data.longestStreak);
+          } else {
+            setStreak(0);
+            setLongestStreak(data.longestStreak);
+          }
+        }
+      }
+    } catch (e) {}
+  };
+
+  const updateStreak = () => {
+    const today = getToday();
+    try {
+      const raw = localStorage.getItem('void_writing_streak');
+      let data = { lastWriteDate: '', streak: 0, longestStreak: 0 };
+      if (raw) data = JSON.parse(raw);
+      if (data.lastWriteDate === today) {
+        setStreak(data.streak);
+        setLongestStreak(data.longestStreak);
+        return;
+      }
+      const lastDate = new Date(data.lastWriteDate + 'T00:00:00');
+      const todayDate = new Date(today + 'T00:00:00');
+      const diff = data.lastWriteDate ? Math.floor((todayDate.getTime() - lastDate.getTime()) / 86400000) : 0;
+      let newStreak = 1;
+      if (diff === 1) {
+        newStreak = data.streak + 1;
+      }
+      const newLongest = Math.max(data.longestStreak, newStreak);
+      const updated = { lastWriteDate: today, streak: newStreak, longestStreak: newLongest };
+      localStorage.setItem('void_writing_streak', JSON.stringify(updated));
+      setStreak(newStreak);
+      setLongestStreak(newLongest);
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    loadStreak();
+  }, []);
+
+  useEffect(() => {
+    if (streakTimeoutRef.current) clearTimeout(streakTimeoutRef.current);
+    streakTimeoutRef.current = setTimeout(() => {
+      if (note.content.trim().length > 0) {
+        updateStreak();
+      }
+    }, 1000);
+    return () => {
+      if (streakTimeoutRef.current) clearTimeout(streakTimeoutRef.current);
+    };
+  }, [note.content]);
+
+  const handleSetGoal = () => {
+    const val = parseInt(goalInputValue, 10);
+    if (val > 0) {
+      setWordGoal(val);
+      localStorage.setItem(`void_goal_${note.id}`, String(val));
+    } else {
+      setWordGoal(null);
+      localStorage.removeItem(`void_goal_${note.id}`);
+    }
+    setShowGoalInput(false);
+    setGoalInputValue('');
+  };
+
+  const handleClearGoal = () => {
+    setWordGoal(null);
+    localStorage.removeItem(`void_goal_${note.id}`);
+    setShowGoalInput(false);
+  };
+
   const triggerSaveVisual = () => {
     setSaveStatus('saving');
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -334,6 +448,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
             <button onClick={handleTTS} disabled={isProcessing} className="p-2 rounded hover:bg-[#1a1a1a] text-pink-400 disabled:opacity-50"><ICONS.Speaker /></button>
             <button onClick={() => setShowPreview(!showPreview)} className={`p-2 rounded hover:bg-[#1a1a1a] transition-colors ${showPreview ? 'text-[#00ff9d]' : 'text-gray-400'}`} title="Toggle Preview"><ICONS.Columns /></button>
             <button onClick={toggleHaunt} disabled={isProcessing} className={`p-2 rounded hover:bg-[#1a1a1a] transition-colors disabled:opacity-50 ${showHauntPanel ? 'text-[#ff00ff] bg-[#1a051a]' : 'text-gray-400 hover:text-[#ff00ff]'}`} title="Haunt (Find Related)"><ICONS.Ghost /></button>
+            <button onClick={() => setIsZenMode(true)} className="p-2 rounded hover:bg-[#1a1a1a] text-gray-400 hover:text-[#00ff9d] transition-colors" title="Focus Mode"><ICONS.Focus /></button>
             <button onClick={onOpenChat} disabled={isProcessing} className="p-2 rounded hover:bg-[#1a1a1a] text-green-400 hover:text-green-300 disabled:opacity-50" title="Chat Assistant"><ICONS.Chat /></button>
             <button onClick={onExport} disabled={isProcessing} className="p-2 rounded hover:bg-[#1a1a1a] text-gray-400 hover:text-white disabled:opacity-50" title="Export"><ICONS.Download /></button>
         </div>
@@ -413,12 +528,51 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
         </div>
       </div>
       
-      {/* Footer Stats Bar */}
       <div className="shrink-0 w-full bg-[#0a0a0a] border-t border-[#1a1a1a] p-2 flex justify-between items-center text-[10px] text-gray-500 font-mono select-none opacity-50 hover:opacity-100 transition-opacity">
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center">
               <span>{wordCount} words</span>
               <span>{charCount} chars</span>
               <span>{readTime} min read</span>
+              <span className="w-[1px] h-3 bg-[#333]"></span>
+              {showGoalInput ? (
+                <span className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    value={goalInputValue}
+                    onChange={(e) => setGoalInputValue(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleSetGoal(); if (e.key === 'Escape') setShowGoalInput(false); }}
+                    placeholder="500"
+                    autoFocus
+                    className="w-12 bg-[#1a1a1a] border border-[#333] rounded px-1 py-0.5 text-[10px] text-gray-300 font-mono focus:outline-none focus:border-[#00ff9d]"
+                  />
+                  <button onClick={handleSetGoal} className="text-[#00ff9d] hover:text-white">✓</button>
+                  {wordGoal && <button onClick={handleClearGoal} className="text-red-500 hover:text-red-400">✕</button>}
+                </span>
+              ) : (
+                <span className="cursor-pointer hover:text-[#00ff9d] transition-colors" onClick={() => { setGoalInputValue(wordGoal ? String(wordGoal) : ''); setShowGoalInput(true); }}>
+                  {wordGoal ? `goal: ${wordGoal}` : 'set goal'}
+                </span>
+              )}
+              {wordGoal && !showGoalInput && (
+                <>
+                  {wordCount >= wordGoal ? (
+                    <span className="text-[#00ff9d]">Goal reached!</span>
+                  ) : (
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-16 h-1 bg-[#333] rounded-full overflow-hidden">
+                        <span className="block h-full bg-[#00ff9d] rounded-full transition-all duration-300" style={{ width: `${Math.min(100, (wordCount / wordGoal) * 100)}%` }}></span>
+                      </span>
+                      <span>{Math.round((wordCount / wordGoal) * 100)}%</span>
+                    </span>
+                  )}
+                </>
+              )}
+              {streak > 0 && (
+                <>
+                  <span className="w-[1px] h-3 bg-[#333]"></span>
+                  <span title={`Longest streak: ${longestStreak} days`}>🔥 {streak}</span>
+                </>
+              )}
           </div>
           <div className="text-right text-[#00ff9d]" title={new Date(note.updatedAt).toLocaleString()}>
               {getSaveStatusText()}
@@ -491,6 +645,37 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
               <button onClick={() => setShowVariants(false)} className="mt-4 text-gray-400">Cancel</button>
           </div>
       )}
+      {isZenMode && (
+          <div className="fixed inset-0 z-[100] bg-[#030303] flex flex-col animate-zen-fade-in">
+              <button
+                onClick={() => setIsZenMode(false)}
+                className="fixed top-4 right-4 z-[101] px-3 py-1.5 rounded text-[10px] font-mono uppercase tracking-widest text-gray-600 hover:text-[#00ff9d] border border-[#1a1a1a] hover:border-[#00ff9d] bg-[#0a0a0a] transition-all"
+              >
+                Exit Focus
+              </button>
+              <div className="flex-1 overflow-y-auto p-4 md:p-8">
+                  <div className="max-w-[700px] mx-auto w-full">
+                      <input
+                        type="text"
+                        value={note.title}
+                        onChange={handleTitleChange}
+                        placeholder="Void Entry"
+                        className="w-full bg-transparent text-2xl md:text-4xl font-bold text-white focus:outline-none placeholder-gray-700 font-mono mb-6"
+                      />
+                      <textarea
+                        ref={zenTextareaRef}
+                        value={note.content}
+                        onChange={handleContentChange}
+                        placeholder="Scream into the void..."
+                        className="w-full bg-transparent text-base md:text-lg text-gray-300 resize-none focus:outline-none min-h-[70vh] leading-relaxed font-mono pb-20"
+                      />
+                  </div>
+              </div>
+              <div className="shrink-0 w-full p-3 flex justify-center">
+                  <span className="text-[10px] text-gray-600 font-mono">{wordCount} words</span>
+              </div>
+          </div>
+      )}
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; } 
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -503,6 +688,8 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
         }
         .animate-fade-in { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes zenFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .animate-zen-fade-in { animation: zenFadeIn 0.5s ease-out; }
       `}</style>
     </div>
   );

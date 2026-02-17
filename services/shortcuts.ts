@@ -10,6 +10,7 @@ export interface ShortcutHandlers {
   onEscape: () => void;
   onShowShortcuts: () => void;
   onExport: () => void;
+  onCommandPalette: () => void;
 }
 
 export const useGlobalShortcuts = (handlers: ShortcutHandlers) => {
@@ -38,6 +39,10 @@ export const useGlobalShortcuts = (handlers: ShortcutHandlers) => {
           case 's':
             e.preventDefault();
             handlers.onSave();
+            break;
+          case 'k':
+            e.preventDefault();
+            handlers.onCommandPalette();
             break;
           case 'f':
             e.preventDefault();

@@ -9,6 +9,7 @@ import { ChatOverlay } from './components/ChatOverlay';
 import { SyncModal } from './components/SyncModal';
 import { ExportModal } from './components/ExportModal';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
+import { CommandPalette } from './components/CommandPalette';
 import { useGlobalShortcuts } from './services/shortcuts';
 import * as Gemini from './services/gemini';
 import { ICONS } from './constants';
@@ -32,6 +33,7 @@ const App: React.FC = () => {
   const [isFusing, setIsFusing] = useState(false);
   const [isGenesis, setIsGenesis] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
   const notesRef = useRef(notes);
   useEffect(() => { notesRef.current = notes; }, [notes]);
@@ -255,7 +257,9 @@ const App: React.FC = () => {
         }
     },
     onShowShortcuts: () => setIsShortcutsOpen(true),
+    onCommandPalette: () => setIsCommandPaletteOpen(prev => !prev),
     onEscape: () => {
+        setIsCommandPaletteOpen(false);
         setIsShortcutsOpen(false);
         setIsSyncOpen(false);
         setIsChatOpen(false);
@@ -299,6 +303,7 @@ const App: React.FC = () => {
             activeNoteId={activeNoteId} 
             onSelectNote={handleSelectNote} 
             onCreateNote={handleCreateNote}
+            onCreateNoteFromTemplate={handleCreateNoteWithContent}
             onDeleteNote={handleDeleteForever}
             onUpdateNote={handleUpdateNote}
             onArchiveNote={handleArchiveNote}
@@ -406,6 +411,19 @@ const App: React.FC = () => {
         {isShortcutsOpen && (
             <KeyboardShortcutsModal onClose={() => setIsShortcutsOpen(false)} />
         )}
+
+        <CommandPalette
+          isOpen={isCommandPaletteOpen}
+          onClose={() => setIsCommandPaletteOpen(false)}
+          notes={notes}
+          onSelectNote={handleSelectNote}
+          onCreateNote={handleCreateNote}
+          onOpenChat={() => setIsChatOpen(true)}
+          onExport={() => { if (activeNoteId) setIsExportOpen(true); }}
+          onArchiveNote={() => { if (activeNoteId) handleArchiveNote(activeNoteId); }}
+          onShowShortcuts={() => setIsShortcutsOpen(true)}
+          onOpenSync={() => setIsSyncOpen(true)}
+        />
       </main>
       
       <style>{`

@@ -1,7 +1,7 @@
 # VOID - Note-Taking Application
 
 ## Overview
-VOID is a React-based note-taking application with a dark, cyberpunk-inspired UI. It features an editor, AI assistant (via Gemini API), Google Drive sync, multimedia support, live sessions, and export capabilities. 42 of 100 planned features are implemented.
+VOID is a React-based note-taking application with a dark, cyberpunk-inspired UI. It features an editor, AI assistant (via Gemini API), Google Drive sync, multimedia support, live sessions, and export capabilities. 59 of 165 planned features are implemented.
 
 ## Tech Stack
 - **Frontend**: React 19, TypeScript, Vite, Tailwind CSS (CDN — NOT an npm dependency)
@@ -52,7 +52,7 @@ VOID is a React-based note-taking application with a dark, cyberpunk-inspired UI
 └── screenshots/    - 20 organized screenshots in 5 labeled folders
 ```
 
-## Implemented Features (42 of 100)
+## Implemented Features (59 of 165)
 - Focus/Zen mode, Split-pane editing, Pomodoro timer
 - Note templates (6 types), Slash commands, Tables support
 - Command palette (Cmd+K), Keyboard shortcuts throughout

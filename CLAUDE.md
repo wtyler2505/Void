@@ -1,6 +1,6 @@
 # VOID
 
-Cyberpunk-aesthetic note-taking app. Browser-only (no backend). 42 of 100 features implemented.
+Cyberpunk-aesthetic note-taking app. Browser-only (no backend). 59 of 165 features implemented.
 
 ## Tech Stack
 

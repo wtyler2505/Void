@@ -86,7 +86,7 @@ VOID is a React-based note-taking application with a dark, cyberpunk-inspired UI
 
 ## User Preferences
 
-### Agent Behavior
+# Agent Behavior
 - **Be proactive**: Don't just do what's asked — actively suggest improvements, optimizations, and new ideas. Point out potential issues before they become problems.
 - **Be curious and explorative**: When working on a feature, think about edge cases, adjacent improvements, and creative enhancements that could make it better. Explore the design space.
 - **Be creative and innovative**: Propose novel approaches, unique UI patterns, and unexpected feature combinations. Think beyond the obvious solution.

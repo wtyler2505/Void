@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -453,6 +453,21 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
     processed = processed.replace(/\[\^(\w+)\](?!:)/g, '**^$1**');
     return processed;
   }, [allNotes]);
+
+  const backlinks = useMemo(() => {
+    const currentTitle = note.title.trim();
+    if (!currentTitle) return [];
+
+    const escapedTitle = currentTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const backlinkPattern = new RegExp(`\\[\\[\\s*${escapedTitle}\\s*\\]\\]`, 'i');
+
+    return allNotes.filter(n => (
+      n.id !== note.id &&
+      !n.archived &&
+      !n.trashedAt &&
+      backlinkPattern.test(n.content)
+    ));
+  }, [allNotes, note.id, note.title]);
 
   const normalizeTag = (tag: string): string => {
     return tag.trim().replace(/^#/, '').toLowerCase().replace(/\s+/g, '-');
@@ -1123,6 +1138,29 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
                   className={`flex-1 bg-transparent text-2xl md:text-4xl font-bold ${isDark ? 'text-white placeholder-gray-700' : 'text-gray-900 placeholder-gray-400'} focus:outline-none tracking-tight`}
                 />
             </div>
+
+            {backlinks.length > 0 && (
+                <div className={`mb-5 md:mb-6 p-3 border ${isDark ? 'bg-[#0f0f0f] border-[#1f1f1f]' : 'bg-gray-50 border-gray-200'}`}>
+                    <div className="flex items-center justify-between mb-2">
+                        <h4 className={`text-[10px] uppercase tracking-widest font-bold ${isDark ? 'text-[#00d2ff]' : 'text-cyan-700'}`}>
+                            Backlinks ({backlinks.length})
+                        </h4>
+                        <span className={`text-[10px] font-mono ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Referenced By</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {backlinks.map(linkedNote => (
+                            <button
+                              key={linkedNote.id}
+                              onClick={() => onSelectNote(linkedNote.id)}
+                              className={`px-2.5 py-1 text-xs border transition-colors ${isDark ? 'border-[#234] text-[#9ad9ff] hover:border-[#00d2ff] hover:text-white' : 'border-cyan-200 text-cyan-700 hover:bg-cyan-50'}`}
+                              title={linkedNote.title}
+                            >
+                                {linkedNote.title || 'Untitled'}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {note.attachments.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 md:mb-8">

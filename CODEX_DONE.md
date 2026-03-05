@@ -1,12 +1,12 @@
 # Codex Completion Report
 
-**Task:** Start checklist execution by implementing the top-priority feature (`AI-powered auto-tagging`)
+**Task:** Start checklist execution by implementing top-priority features (`AI-powered auto-tagging` and `Backlinks panel`)
 **Status:** done
 
 ## Changes Made
 - `services/gemini.ts` - Added `suggestTagsForNote(title, content, existingTags)` with JSON-only Gemini output, sanitization, dedupe, and safe fallback.
-- `components/Editor.tsx` - Added `handleAutoTag` action to request AI tags, merge unique tags into current note, and expose it via toolbar button (`Auto Tag`).
-- `docs/IMPROVEMENT_CHECKLIST.md` - Marked auto-tagging complete and updated progress counters (60/165 total, AI 14/28).
+- `components/Editor.tsx` - Added `handleAutoTag` action + toolbar button and implemented `Backlinks` panel with reverse `[[note title]]` detection and quick navigation.
+- `docs/IMPROVEMENT_CHECKLIST.md` - Marked both features complete and updated progress counters (61/165 total, AI 14/28, Organization 10/19).
 
 ## Commands Run
 ```bash
@@ -19,11 +19,11 @@ git diff -- docs/IMPROVEMENT_CHECKLIST.md
 ```
 
 ## Next Steps
-- Implement checklist item #2: backlinks panel (existing `[[note]]` links are already in place).
-- Add lightweight UX polish for auto-tagging (e.g., non-blocking toast instead of alerts).
+- Implement checklist item #3: export to PDF.
+- Replace blocking `alert()` calls in AI actions with consistent in-app toast notifications.
 
 ## Blockers (if any)
 - None.
 
 ## Handoff Notes
-Auto-tagging is intentionally conservative: it sanitizes tags to lowercase/kebab, prevents duplicates, and no-ops safely if the model output is invalid or empty.
+Auto-tagging is intentionally conservative: it sanitizes tags to lowercase/kebab, prevents duplicates, and no-ops safely if the model output is invalid or empty. Backlinks uses title-based `[[...]]` matching, so links continue to work with existing note-link syntax.

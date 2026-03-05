@@ -2,7 +2,7 @@
 
 A comprehensive checklist of every implemented feature, planned enhancement, and future possibility for VOID.
 
-**Progress: 60 of 165 features implemented**
+**Progress: 61 of 165 features implemented**
 
 ```
 ███████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  36%
@@ -72,7 +72,7 @@ A comprehensive checklist of every implemented feature, planned enhancement, and
 - [ ] Vim/Emacs keybinding modes — optional keyboard modes for power users
 - [ ] Markdown table of contents sidebar — live outline of current note's headings
 
-## ◈ Organization & Navigation (9 implemented, 10 planned)
+## ◈ Organization & Navigation (10 implemented, 9 planned)
 
 - [x] Folders / nested folder structure
 - [x] Note linking — wiki-style `[[note]]` links between notes
@@ -84,7 +84,7 @@ A comprehensive checklist of every implemented feature, planned enhancement, and
 - [x] Recent notes / quick access panel
 - [x] Trash / recycle bin with restore and empty trash
 - [ ] Knowledge graph visualization — interactive map of linked notes
-- [ ] Backlinks panel — show all notes that link TO the current note
+- [x] Backlinks panel — show all notes that link TO the current note
 - [ ] Smart folders — auto-populate based on rules (tag, date range, content pattern)
 - [ ] Note categories beyond tags — hierarchical taxonomy
 - [ ] Duplicate note detection — find notes with similar content
@@ -219,7 +219,7 @@ A comprehensive checklist of every implemented feature, planned enhancement, and
 |:--|:--:|:--:|:--|
 | AI / Intelligence | 14 | 28 | `██████████████░░░░░░░░░░░░░░░` 50% |
 | Editor | 13 | 25 | `██████████░░░░░░░░░░░░░░░░░░░` 52% |
-| Organization | 9 | 19 | `████████░░░░░░░░░░░░░░░░░░░░░` 47% |
+| Organization | 10 | 19 | `██████████░░░░░░░░░░░░░░░░░░░` 53% |
 | Collaboration | 0 | 7 | `░░░░░░░░░░░░░░░░░░░░░░░░░░░░░` 0% |
 | Data & Storage | 2 | 11 | `█████░░░░░░░░░░░░░░░░░░░░░░░░` 18% |
 | Export & Sharing | 2 | 9 | `██████░░░░░░░░░░░░░░░░░░░░░░░` 22% |
@@ -228,7 +228,7 @@ A comprehensive checklist of every implemented feature, planned enhancement, and
 | Integrations | 0 | 12 | `░░░░░░░░░░░░░░░░░░░░░░░░░░░░░` 0% |
 | Productivity | 8 | 13 | `██████████████████░░░░░░░░░░░` 62% |
 | Performance | 2 | 10 | `██████░░░░░░░░░░░░░░░░░░░░░░░` 20% |
-| **TOTAL** | **60** | **165** | `███████████░░░░░░░░░░░░░░░░░░` **36%** |
+| **TOTAL** | **61** | **165** | `███████████░░░░░░░░░░░░░░░░░░` **37%** |
 
 ---
 
@@ -236,13 +236,11 @@ A comprehensive checklist of every implemented feature, planned enhancement, and
 
 These features would deliver the most user value for the least implementation effort:
 
-1. **AI auto-tagging** — low effort, high organization value, uses existing Gemini integration
-2. **Backlinks panel** — the `[[note]]` linking already works, just need a "referenced by" panel
-3. **Export to PDF** — highly requested, can use browser print-to-PDF with styling
-4. **Drag-and-drop images** — transforms the editor's multimedia capability
-5. **Knowledge graph** — the linking data already exists, just needs visualization (D3/force graph)
-6. **PWA support** — add a manifest and service worker for installability
-7. **AI writing autocomplete** — ghost text suggestions while typing, uses existing Gemini
-8. **Markdown TOC sidebar** — parse headings from current note, show clickable outline
-9. **Smart folders** — auto-populate folders based on tag/content rules
-10. **Spaced repetition** — resurface notes on a schedule, great for learning/review workflows
+1. **Export to PDF** — highly requested, can use browser print-to-PDF with styling
+2. **Drag-and-drop images** — transforms the editor's multimedia capability
+3. **Knowledge graph** — the linking data already exists, just needs visualization (D3/force graph)
+4. **PWA support** — add a manifest and service worker for installability
+5. **AI writing autocomplete** — ghost text suggestions while typing, uses existing Gemini
+6. **Markdown TOC sidebar** — parse headings from current note, show clickable outline
+7. **Smart folders** — auto-populate folders based on tag/content rules
+8. **Spaced repetition** — resurface notes on a schedule, great for learning/review workflows

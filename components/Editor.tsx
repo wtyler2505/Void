@@ -51,6 +51,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
   const [isThinking, setIsThinking] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
+  const [toast, setToast] = useState<{ message: string; tone: 'info' | 'error' | 'success' } | null>(null);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving'>('saved');
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -102,8 +103,15 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const streakTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const checkboxCounterRef = useRef(0);
+
+  const showToast = useCallback((message: string, tone: 'info' | 'error' | 'success' = 'info') => {
+    setToast({ message, tone });
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    toastTimeoutRef.current = setTimeout(() => setToast(null), 2600);
+  }, []);
 
   // Auto-resize textarea
   useLayoutEffect(() => {
@@ -121,6 +129,12 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
   useEffect(() => {
       const interval = setInterval(() => setCurrentTime(Date.now()), 60000);
       return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    };
   }, []);
 
   // Update current time when note updates
@@ -481,7 +495,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
     try {
       const suggestions = await Gemini.suggestTagsForNote(note.title, note.content, note.tags);
       if (suggestions.length === 0) {
-        alert('No new tags suggested.');
+        showToast('No new tags suggested.', 'info');
         return;
       }
 
@@ -498,14 +512,15 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
       }
 
       if (added === 0) {
-        alert('Suggested tags are already applied.');
+        showToast('Suggested tags are already applied.', 'info');
         return;
       }
 
       onUpdate({ tags: mergedTags });
       triggerSaveVisual();
+      showToast(`Added ${added} tag${added === 1 ? '' : 's'}.`, 'success');
     } catch (e) {
-      alert('Auto-tagging failed.');
+      showToast('Auto-tagging failed.', 'error');
     } finally {
       setIsProcessing(false);
       setStatusMessage('');
@@ -519,8 +534,9 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
       const summary = await Gemini.summarizeNote(note.content, isThinking);
       onUpdate({ content: `${note.content}\n\n### AI Summary\n${summary}` });
       triggerSaveVisual();
+      showToast('Summary appended.', 'success');
     } catch (e) {
-      alert('Failed to summarize');
+      showToast('Failed to summarize.', 'error');
     } finally {
       setIsProcessing(false);
       setStatusMessage('');
@@ -559,7 +575,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
       const newAttachment: Attachment = { id: Date.now().toString(), type: 'image', url: b64, mimeType: 'image/png', metadata: prompt };
       onUpdate({ attachments: [...note.attachments, newAttachment] });
       triggerSaveVisual();
-    } catch (e) { alert('Image generation failed.'); } finally { setIsProcessing(false); setStatusMessage(''); }
+    } catch (e) { showToast('Image generation failed.', 'error'); } finally { setIsProcessing(false); setStatusMessage(''); }
   };
 
   const handleVisualize = async () => {
@@ -617,7 +633,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
       const url = await Gemini.generateVideo(prompt, refBlob);
       onUpdate({ attachments: [...note.attachments, { id: Date.now().toString(), type: 'video', url: url, mimeType: 'video/mp4', metadata: prompt }] });
       triggerSaveVisual();
-    } catch (e) { alert('Video failed.'); } finally { setIsProcessing(false); setStatusMessage(''); }
+    } catch (e) { showToast('Video generation failed.', 'error'); } finally { setIsProcessing(false); setStatusMessage(''); }
   };
 
   const handleAnalyzeVideo = async (attachmentId: string, url: string) => {
@@ -627,7 +643,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
           const updated = note.attachments.map(a => a.id === attachmentId ? { ...a, metadata: (a.metadata || '') + '\n\n' + analysis } : a);
           onUpdate({ attachments: updated });
           triggerSaveVisual();
-      } catch (e) { alert("Analysis failed."); } finally { setIsProcessing(false); setStatusMessage(''); }
+      } catch (e) { showToast('Video analysis failed.', 'error'); } finally { setIsProcessing(false); setStatusMessage(''); }
   };
 
   const handleEditImage = async (attachmentId: string, url: string) => {
@@ -638,7 +654,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
           const newUrl = await Gemini.editImage(url, prompt);
           onUpdate({ attachments: [...note.attachments, { id: Date.now().toString(), type: 'image', url: newUrl, mimeType: 'image/png', metadata: `Edit: ${prompt}` }] });
           triggerSaveVisual();
-      } catch (e) { alert("Edit failed."); } finally { setIsProcessing(false); setStatusMessage(''); }
+      } catch (e) { showToast('Image edit failed.', 'error'); } finally { setIsProcessing(false); setStatusMessage(''); }
   };
 
   const handleTTS = async () => {
@@ -652,7 +668,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
       source.buffer = audioBuffer;
       source.connect(ctx.destination);
       source.start();
-    } catch (e) { console.error(e); alert('TTS Failed'); } finally { setIsProcessing(false); setStatusMessage(''); }
+    } catch (e) { console.error(e); showToast('Text-to-speech failed.', 'error'); } finally { setIsProcessing(false); setStatusMessage(''); }
   };
 
   const refreshHaunt = async () => {
@@ -929,6 +945,24 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
       {isProcessing && (
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-transparent z-50 overflow-hidden pointer-events-none">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#00ff9d] to-transparent w-[50%] animate-scan-smooth opacity-75 blur-[1px]"></div>
+        </div>
+      )}
+
+      {toast && (
+        <div className="absolute top-14 right-4 z-50 pointer-events-none">
+          <div
+            className={`px-3 py-2 border text-xs font-mono tracking-wide shadow-lg ${
+              toast.tone === 'error'
+                ? 'bg-[#2a0a0a] border-[#7a1f1f] text-[#ff8f8f]'
+                : toast.tone === 'success'
+                ? 'bg-[#0a2417] border-[#1f7a4f] text-[#8fffc4]'
+                : 'bg-[#0e1d2b] border-[#1f4f7a] text-[#9ad9ff]'
+            }`}
+            role="status"
+            aria-live="polite"
+          >
+            {toast.message}
+          </div>
         </div>
       )}
 

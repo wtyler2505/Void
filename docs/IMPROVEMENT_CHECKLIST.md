@@ -2,10 +2,10 @@
 
 A comprehensive checklist of every implemented feature, planned enhancement, and future possibility for VOID.
 
-**Progress: 61 of 165 features implemented**
+**Progress: 62 of 165 features implemented**
 
 ```
-███████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  36%
+████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░  38%
 ```
 
 > **Note**: The original 100-item checklist was audited and expanded. 13 AI features that were already implemented but unmarked have been corrected. 50 new ideas have been added across all categories, bringing the total to 150.
@@ -118,11 +118,11 @@ A comprehensive checklist of every implemented feature, planned enhancement, and
 - [ ] Import markdown files — drag folder of .md files to bulk import
 - [ ] Version diff view — side-by-side comparison between two versions of a note
 
-## ◈ Export & Sharing (2 implemented, 7 planned)
+## ◈ Export & Sharing (3 implemented, 6 planned)
 
 - [x] Export to HTML (with XSS protection)
 - [x] Print-friendly view
-- [ ] Export to PDF with styled formatting
+- [x] Export to PDF with styled formatting
 - [ ] Export to DOCX (Word)
 - [ ] Email a note directly
 - [ ] Publish notes as a blog / public page with custom URL
@@ -222,13 +222,13 @@ A comprehensive checklist of every implemented feature, planned enhancement, and
 | Organization | 10 | 19 | `██████████░░░░░░░░░░░░░░░░░░░` 53% |
 | Collaboration | 0 | 7 | `░░░░░░░░░░░░░░░░░░░░░░░░░░░░░` 0% |
 | Data & Storage | 2 | 11 | `█████░░░░░░░░░░░░░░░░░░░░░░░░` 18% |
-| Export & Sharing | 2 | 9 | `██████░░░░░░░░░░░░░░░░░░░░░░░` 22% |
+| Export & Sharing | 3 | 9 | `██████████░░░░░░░░░░░░░░░░░░░` 33% |
 | Multimedia | 0 | 9 | `░░░░░░░░░░░░░░░░░░░░░░░░░░░░░` 0% |
 | UI / UX | 10 | 22 | `██████████░░░░░░░░░░░░░░░░░░░` 45% |
 | Integrations | 0 | 12 | `░░░░░░░░░░░░░░░░░░░░░░░░░░░░░` 0% |
 | Productivity | 8 | 13 | `██████████████████░░░░░░░░░░░` 62% |
 | Performance | 2 | 10 | `██████░░░░░░░░░░░░░░░░░░░░░░░` 20% |
-| **TOTAL** | **61** | **165** | `███████████░░░░░░░░░░░░░░░░░░` **37%** |
+| **TOTAL** | **62** | **165** | `████████████░░░░░░░░░░░░░░░░░` **38%** |
 
 ---
 
@@ -236,11 +236,10 @@ A comprehensive checklist of every implemented feature, planned enhancement, and
 
 These features would deliver the most user value for the least implementation effort:
 
-1. **Export to PDF** — highly requested, can use browser print-to-PDF with styling
-2. **Drag-and-drop images** — transforms the editor's multimedia capability
-3. **Knowledge graph** — the linking data already exists, just needs visualization (D3/force graph)
-4. **PWA support** — add a manifest and service worker for installability
-5. **AI writing autocomplete** — ghost text suggestions while typing, uses existing Gemini
-6. **Markdown TOC sidebar** — parse headings from current note, show clickable outline
-7. **Smart folders** — auto-populate folders based on tag/content rules
-8. **Spaced repetition** — resurface notes on a schedule, great for learning/review workflows
+1. **Drag-and-drop images** — transforms the editor's multimedia capability
+2. **Knowledge graph** — the linking data already exists, just needs visualization (D3/force graph)
+3. **PWA support** — add a manifest and service worker for installability
+4. **AI writing autocomplete** — ghost text suggestions while typing, uses existing Gemini
+5. **Markdown TOC sidebar** — parse headings from current note, show clickable outline
+6. **Smart folders** — auto-populate folders based on tag/content rules
+7. **Spaced repetition** — resurface notes on a schedule, great for learning/review workflows

@@ -112,17 +112,14 @@ ${note.attachments.length > 0 ? `**Attachments:** ${note.attachments.length} fil
     return html;
   };
 
-  const handlePrint = () => {
+  const getPrintableDocumentHtml = (printMode: 'print' | 'pdf') => {
     const printContent = markdownToHtml(note.content);
     const tagsStr = note.tags.map(t => `#${escapeHtml(t)}`).join(' ');
-    
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    
-    printWindow.document.write(`<!DOCTYPE html>
+
+    return `<!DOCTYPE html>
 <html>
 <head>
-  <title>${escapeHtml(note.title)}</title>
+  <title>${escapeHtml(note.title)}${printMode === 'pdf' ? ' - PDF Export' : ''}</title>
   <style>
     @media print {
       body { margin: 0; padding: 20px; }
@@ -150,12 +147,22 @@ ${note.attachments.length > 0 ? `**Attachments:** ${note.attachments.length} fil
     .tags { color: #666; font-size: 12px; margin-bottom: 16px; }
     .tags span { background: #eee; padding: 2px 8px; border-radius: 10px; margin-right: 6px; }
     hr { border: none; border-top: 1px solid #ddd; margin: 24px 0; }
+    .hint {
+      margin-bottom: 16px;
+      padding: 8px 12px;
+      background: #f4f4f4;
+      border: 1px solid #ddd;
+      font-size: 12px;
+      color: #333;
+      border-radius: 6px;
+    }
     @media print {
-      .no-print { display: none; }
+      .hint { display: none; }
     }
   </style>
 </head>
 <body>
+  ${printMode === 'pdf' ? '<div class="hint">In the print dialog, choose Destination: Save to PDF.</div>' : ''}
   <h1>${escapeHtml(note.title)}</h1>
   <div class="meta">
     Created: ${new Date(note.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · 
@@ -165,11 +172,30 @@ ${note.attachments.length > 0 ? `**Attachments:** ${note.attachments.length} fil
   <hr>
   ${printContent}
   <script>
-    window.onload = function() { window.print(); };
+    window.onload = function() {
+      window.print();
+      window.onafterprint = function() { window.close(); };
+    };
   <\/script>
 </body>
-</html>`);
+</html>`;
+  };
+
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    printWindow.document.write(getPrintableDocumentHtml('print'));
     printWindow.document.close();
+  };
+
+  const handleExportPDF = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    printWindow.document.write(getPrintableDocumentHtml('pdf'));
+    printWindow.document.close();
+    onClose();
   };
 
   const handleDownloadHTML = () => {
@@ -307,6 +333,14 @@ ${note.attachments.length > 0 ? `**Attachments:** ${note.attachments.length} fil
             >
                 <ICONS.FileCode className="w-6 h-6 text-gray-400 group-hover:text-[#00ff9d]" />
                 <span className="text-sm font-bold">HTML File</span>
+            </button>
+
+            <button 
+                onClick={handleExportPDF}
+                className="flex flex-col items-center justify-center p-4 bg-[#111] border border-[#333]  hover:border-[#00ff9d] hover:bg-[#002b1f] hover:text-[#00ff9d] transition-all gap-2 group"
+            >
+                <ICONS.FileText className="w-6 h-6 text-gray-400 group-hover:text-[#00ff9d]" />
+                <span className="text-sm font-bold">PDF (.pdf)</span>
             </button>
 
             <button 

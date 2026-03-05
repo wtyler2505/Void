@@ -58,6 +58,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [showPreview, setShowPreview] = useState(false);
   const [showCheatSheet, setShowCheatSheet] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
   
   const [showVariants, setShowVariants] = useState(false);
   const [variants, setVariants] = useState<string[]>([]);
@@ -725,6 +726,67 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
     }
   };
 
+  const fileToAttachment = (file: File): Promise<Attachment> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        resolve({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          type: 'image',
+          url: reader.result as string,
+          mimeType: file.type,
+          metadata: `Dropped: ${file.name}`
+        });
+      };
+      reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const embedDroppedImages = async (files: File[]) => {
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    if (imageFiles.length === 0) {
+      showToast('Drop image files to embed.', 'info');
+      return;
+    }
+
+    setIsProcessing(true);
+    setStatusMessage('Embedding Images...');
+    try {
+      const newAttachments = await Promise.all(imageFiles.map(fileToAttachment));
+      onUpdate({ attachments: [...note.attachments, ...newAttachments] });
+      triggerSaveVisual();
+      showToast(`Embedded ${newAttachments.length} image${newAttachments.length === 1 ? '' : 's'}.`, 'success');
+    } catch (e) {
+      showToast('Image embedding failed.', 'error');
+    } finally {
+      setIsProcessing(false);
+      setStatusMessage('');
+    }
+  };
+
+  const handleEditorDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const hasFiles = Array.from(e.dataTransfer.items).some(item => item.kind === 'file');
+    if (hasFiles) {
+      e.dataTransfer.dropEffect = 'copy';
+      setIsDragOver(true);
+    }
+  };
+
+  const handleEditorDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragOver(false);
+    }
+  };
+
+  const handleEditorDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const files = Array.from(e.dataTransfer.files || []);
+    await embedDroppedImages(files);
+  };
+
   // Stats Calculations
   const wordCount = note.content.trim().split(/\s+/).filter(Boolean).length;
   const charCount = note.content.length;
@@ -1213,7 +1275,12 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
             )}
 
             <div className={`flex flex-col md:flex-row gap-6 ${showPreview ? '' : ''}`}>
-                <div className={`transition-all duration-300 relative ${showPreview ? 'w-full md:w-1/2' : 'w-full'}`}>
+                <div
+                  className={`transition-all duration-300 relative ${showPreview ? 'w-full md:w-1/2' : 'w-full'} ${isDragOver ? `${isDark ? 'bg-[#0b1a14]' : 'bg-emerald-50'} ring-2 ring-[#00ff9d]/50` : ''}`}
+                  onDragOver={handleEditorDragOver}
+                  onDragLeave={handleEditorDragLeave}
+                  onDrop={handleEditorDrop}
+                >
                     <textarea 
                       ref={textareaRef}
                       value={note.content}
@@ -1223,6 +1290,13 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
                       aria-label="Note content"
                       className={`w-full bg-transparent text-base md:text-lg ${isDark ? 'text-gray-300' : 'text-gray-800'} resize-none focus:outline-none min-h-[50vh] leading-relaxed font-mono pb-20`}
                     />
+                    {isDragOver && (
+                      <div className="absolute inset-0 pointer-events-none flex items-center justify-center border-2 border-dashed border-[#00ff9d]">
+                        <span className={`px-3 py-1 text-xs font-mono uppercase tracking-wider ${isDark ? 'bg-[#001a10] text-[#00ff9d]' : 'bg-white text-emerald-600'} border border-[#00ff9d]/60`}>
+                          Drop Images To Embed
+                        </span>
+                      </div>
+                    )}
                     {showLinkSuggest && (
                       <div className={`absolute z-50 ${isDark ? 'bg-[#111] border-[#333]' : 'bg-white border-gray-200'} border  shadow-lg max-w-xs w-64 overflow-hidden`} style={{ top: '2rem', left: '1rem' }}>
                         {linkSuggestions.length === 0 ? (

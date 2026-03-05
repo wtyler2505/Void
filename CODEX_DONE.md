@@ -1,13 +1,14 @@
 # Codex Completion Report
 
-**Task:** Execute sequence 3 > 2 > 1 by pushing, replacing alert UX with toasts, and implementing PDF export
+**Task:** Execute repeating 3 > 2 > 1 loop by pushing, replacing alert UX with toasts, implementing PDF export, and continuing checklist momentum
 **Status:** done
 
 ## Changes Made
 - `services/gemini.ts` - Added `suggestTagsForNote(title, content, existingTags)` with JSON-only Gemini output, sanitization, dedupe, and safe fallback.
 - `components/Editor.tsx` - Added `handleAutoTag` action + toolbar button, implemented `Backlinks` panel with reverse `[[note title]]` detection, and replaced blocking `alert()` calls with in-app toasts.
+- `components/Editor.tsx` - Added drag-and-drop image embedding on editor surface with visual drop-zone cue and attachment ingestion.
 - `components/ExportModal.tsx` - Added explicit `PDF (.pdf)` export action with print-to-PDF flow and dedicated PDF hint in the printable document.
-- `docs/IMPROVEMENT_CHECKLIST.md` - Marked auto-tagging, backlinks, and export-to-PDF complete; updated progress counters (62/165 total, 38%).
+- `docs/IMPROVEMENT_CHECKLIST.md` - Marked auto-tagging, backlinks, export-to-PDF, and drag-and-drop image embedding complete; updated progress counters (63/165 total, 38%).
 
 ## Commands Run
 ```bash
@@ -23,7 +24,7 @@ git diff -- docs/IMPROVEMENT_CHECKLIST.md
 ```
 
 ## Next Steps
-- Implement checklist item #4: drag-and-drop image embedding.
+- Implement checklist item #5: knowledge graph visualization.
 - Continue push cadence after each verified checkpoint.
 
 ## Blockers (if any)

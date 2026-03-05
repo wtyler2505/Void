@@ -2,7 +2,7 @@
 
 A comprehensive checklist of every implemented feature, planned enhancement, and future possibility for VOID.
 
-**Progress: 62 of 165 features implemented**
+**Progress: 63 of 165 features implemented**
 
 ```
 ████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░  38%
@@ -43,7 +43,7 @@ A comprehensive checklist of every implemented feature, planned enhancement, and
 - [ ] AI sentiment analysis — mood tracking across journal entries over time
 - [ ] AI duplicate detection — find notes with overlapping content and suggest merges
 
-## ◈ Editor Enhancements (13 implemented, 12 planned)
+## ◈ Editor Enhancements (14 implemented, 11 planned)
 
 - [x] Code syntax highlighting in code blocks (VS Code Dark+ theme)
 - [x] Tables support — insert and edit markdown tables via toolbar and slash commands
@@ -59,7 +59,7 @@ A comprehensive checklist of every implemented feature, planned enhancement, and
 - [x] Collapsible sections / enhanced markdown preview with styled headings, code, blockquotes
 - [x] Footnotes and annotations — `[^1]` references with styled definitions
 - [ ] Full rich text / WYSIWYG editing — bold, italic, headings via toolbar buttons (not just markdown)
-- [ ] Drag-and-drop image embedding — paste or drop images directly into notes
+- [x] Drag-and-drop image embedding — paste or drop images directly into notes
 - [ ] Drawing / sketching canvas — freehand drawing within notes
 - [ ] Math/LaTeX equation rendering (KaTeX integration)
 - [ ] Mermaid diagram rendering — flowcharts, sequence diagrams, state diagrams in markdown
@@ -218,7 +218,7 @@ A comprehensive checklist of every implemented feature, planned enhancement, and
 | Category | Done | Total | Progress |
 |:--|:--:|:--:|:--|
 | AI / Intelligence | 14 | 28 | `██████████████░░░░░░░░░░░░░░░` 50% |
-| Editor | 13 | 25 | `██████████░░░░░░░░░░░░░░░░░░░` 52% |
+| Editor | 14 | 25 | `████████████░░░░░░░░░░░░░░░░░` 56% |
 | Organization | 10 | 19 | `██████████░░░░░░░░░░░░░░░░░░░` 53% |
 | Collaboration | 0 | 7 | `░░░░░░░░░░░░░░░░░░░░░░░░░░░░░` 0% |
 | Data & Storage | 2 | 11 | `█████░░░░░░░░░░░░░░░░░░░░░░░░` 18% |
@@ -228,7 +228,7 @@ A comprehensive checklist of every implemented feature, planned enhancement, and
 | Integrations | 0 | 12 | `░░░░░░░░░░░░░░░░░░░░░░░░░░░░░` 0% |
 | Productivity | 8 | 13 | `██████████████████░░░░░░░░░░░` 62% |
 | Performance | 2 | 10 | `██████░░░░░░░░░░░░░░░░░░░░░░░` 20% |
-| **TOTAL** | **62** | **165** | `████████████░░░░░░░░░░░░░░░░░` **38%** |
+| **TOTAL** | **63** | **165** | `████████████░░░░░░░░░░░░░░░░░` **38%** |
 
 ---
 
@@ -236,10 +236,9 @@ A comprehensive checklist of every implemented feature, planned enhancement, and
 
 These features would deliver the most user value for the least implementation effort:
 
-1. **Drag-and-drop images** — transforms the editor's multimedia capability
-2. **Knowledge graph** — the linking data already exists, just needs visualization (D3/force graph)
-3. **PWA support** — add a manifest and service worker for installability
-4. **AI writing autocomplete** — ghost text suggestions while typing, uses existing Gemini
-5. **Markdown TOC sidebar** — parse headings from current note, show clickable outline
-6. **Smart folders** — auto-populate folders based on tag/content rules
-7. **Spaced repetition** — resurface notes on a schedule, great for learning/review workflows
+1. **Knowledge graph** — the linking data already exists, just needs visualization (D3/force graph)
+2. **PWA support** — add a manifest and service worker for installability
+3. **AI writing autocomplete** — ghost text suggestions while typing, uses existing Gemini
+4. **Markdown TOC sidebar** — parse headings from current note, show clickable outline
+5. **Smart folders** — auto-populate folders based on tag/content rules
+6. **Spaced repetition** — resurface notes on a schedule, great for learning/review workflows

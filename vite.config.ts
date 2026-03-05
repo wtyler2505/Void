@@ -15,6 +15,19 @@ export default defineConfig(({ mode }) => {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
       },
+      build: {
+        rollupOptions: {
+          output: {
+            manualChunks(id) {
+              if (!id.includes('node_modules')) return;
+              if (id.includes('react-syntax-highlighter')) return 'syntax-highlighter';
+              if (id.includes('@google/genai')) return 'gemini-sdk';
+              if (id.includes('react-markdown') || id.includes('remark-gfm')) return 'markdown';
+              return 'vendor';
+            }
+          }
+        }
+      },
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),

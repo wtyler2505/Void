@@ -454,6 +454,49 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
     return processed;
   }, [allNotes]);
 
+  const normalizeTag = (tag: string): string => {
+    return tag.trim().replace(/^#/, '').toLowerCase().replace(/\s+/g, '-');
+  };
+
+  const handleAutoTag = async () => {
+    if (!note.title.trim() && !note.content.trim()) return;
+
+    setIsProcessing(true);
+    setStatusMessage('Tagging...');
+    try {
+      const suggestions = await Gemini.suggestTagsForNote(note.title, note.content, note.tags);
+      if (suggestions.length === 0) {
+        alert('No new tags suggested.');
+        return;
+      }
+
+      const mergedTags = [...note.tags];
+      const existing = new Set(note.tags.map(normalizeTag).filter(Boolean));
+      let added = 0;
+
+      for (const suggestion of suggestions) {
+        const clean = normalizeTag(suggestion);
+        if (!clean || existing.has(clean)) continue;
+        mergedTags.push(clean);
+        existing.add(clean);
+        added += 1;
+      }
+
+      if (added === 0) {
+        alert('Suggested tags are already applied.');
+        return;
+      }
+
+      onUpdate({ tags: mergedTags });
+      triggerSaveVisual();
+    } catch (e) {
+      alert('Auto-tagging failed.');
+    } finally {
+      setIsProcessing(false);
+      setStatusMessage('');
+    }
+  };
+
   const handleSummarize = async () => {
     setIsProcessing(true);
     setStatusMessage('Summarizing...');
@@ -888,6 +931,7 @@ export const Editor: React.FC<EditorProps> = ({ note, allNotes, onUpdate, onSele
         <div className="flex gap-1">
             <button onClick={handleSummarize} disabled={isProcessing} aria-label="Summarize" className={`p-2  ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-[#00ff9d] disabled:opacity-50`}><ICONS.Brain /></button>
             <button onClick={handleFastEnhance} disabled={isProcessing} aria-label="AI enhance" className={`p-2  ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-[#00d2ff] disabled:opacity-50`}><ICONS.Bolt /></button>
+            <button onClick={handleAutoTag} disabled={isProcessing} aria-label="Auto-tag note" className={`p-2  ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-[#54a0ff] disabled:opacity-50`} title="Auto Tag"><ICONS.Sparkle /></button>
             <button onClick={handleVisualize} disabled={isProcessing} aria-label="Visualize" className={`p-2  ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-yellow-400 disabled:opacity-50`}><ICONS.Eye /></button>
             <button onClick={handleGenerateVideo} disabled={isProcessing} aria-label="Generate video" className={`p-2  ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-purple-400 disabled:opacity-50`}><ICONS.Video /></button>
             <button onClick={handleTTS} disabled={isProcessing} aria-label="Text to speech" className={`p-2  ${isDark ? 'hover:bg-[#1a1a1a]' : 'hover:bg-gray-100'} text-pink-400 disabled:opacity-50`}><ICONS.Speaker /></button>

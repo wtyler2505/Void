@@ -2,7 +2,7 @@
 
 A comprehensive checklist of every implemented feature, planned enhancement, and future possibility for VOID.
 
-**Progress: 59 of 165 features implemented**
+**Progress: 60 of 165 features implemented**
 
 ```
 ███████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  36%
@@ -12,7 +12,7 @@ A comprehensive checklist of every implemented feature, planned enhancement, and
 
 ---
 
-## ◈ AI / Intelligence (13 implemented, 15 planned)
+## ◈ AI / Intelligence (14 implemented, 14 planned)
 
 - [x] AI note summarization — condense notes into key points (Summarize toolbar button)
 - [x] AI writing enhancement — fix grammar, improve flow, reformat (Enhance toolbar button)
@@ -27,7 +27,7 @@ A comprehensive checklist of every implemented feature, planned enhancement, and
 - [x] Chat maps grounding — location/maps context in VOID OS chat
 - [x] Voice recording and audio transcription (REC toolbar button)
 - [x] Chat context awareness — VOID OS can search, reference, create, and manage all notes via function calling
-- [ ] AI-powered auto-tagging — automatically suggest and apply tags based on note content
+- [x] AI-powered auto-tagging — automatically suggest and apply tags based on note content
 - [ ] AI writing autocomplete — inline suggestions as you type (ghost text)
 - [ ] AI tone/style rewriting — rewrite in formal, casual, technical, poetic, etc.
 - [ ] AI translation — translate notes to other languages
@@ -217,7 +217,7 @@ A comprehensive checklist of every implemented feature, planned enhancement, and
 
 | Category | Done | Total | Progress |
 |:--|:--:|:--:|:--|
-| AI / Intelligence | 13 | 28 | `█████████████░░░░░░░░░░░░░░░░` 46% |
+| AI / Intelligence | 14 | 28 | `██████████████░░░░░░░░░░░░░░░` 50% |
 | Editor | 13 | 25 | `██████████░░░░░░░░░░░░░░░░░░░` 52% |
 | Organization | 9 | 19 | `████████░░░░░░░░░░░░░░░░░░░░░` 47% |
 | Collaboration | 0 | 7 | `░░░░░░░░░░░░░░░░░░░░░░░░░░░░░` 0% |
@@ -228,7 +228,7 @@ A comprehensive checklist of every implemented feature, planned enhancement, and
 | Integrations | 0 | 12 | `░░░░░░░░░░░░░░░░░░░░░░░░░░░░░` 0% |
 | Productivity | 8 | 13 | `██████████████████░░░░░░░░░░░` 62% |
 | Performance | 2 | 10 | `██████░░░░░░░░░░░░░░░░░░░░░░░` 20% |
-| **TOTAL** | **59** | **165** | `███████████░░░░░░░░░░░░░░░░░░` **36%** |
+| **TOTAL** | **60** | **165** | `███████████░░░░░░░░░░░░░░░░░░` **36%** |
 
 ---
 

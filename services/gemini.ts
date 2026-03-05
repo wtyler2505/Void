@@ -67,6 +67,70 @@ export const fastEnhance = async (content: string): Promise<string> => {
     return response.text || content;
 };
 
+export const suggestTagsForNote = async (
+  title: string,
+  content: string,
+  existingTags: string[] = []
+): Promise<string[]> => {
+  const ai = getAI();
+  const noteText = `${title}\n\n${content}`.trim();
+  if (!noteText || noteText.length < 10) return [];
+
+  const prompt = `
+You suggest concise tags for notes.
+
+Rules:
+- Return 3 to 8 tags.
+- Lowercase only.
+- No # prefix.
+- Prefer one word; use kebab-case only when needed.
+- Avoid generic tags like "note", "thoughts", "misc".
+- Do not repeat existing tags.
+
+Existing tags:
+${JSON.stringify(existingTags)}
+
+Note:
+${noteText.substring(0, 3000)}
+
+Output ONLY valid JSON in this exact shape:
+["tag-one","tag-two"]
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: { responseMimeType: 'application/json' }
+    });
+
+    const raw = response.text || '[]';
+    const parsed = JSON.parse(raw);
+    const candidates: unknown[] = Array.isArray(parsed)
+      ? parsed
+      : Array.isArray(parsed?.tags)
+      ? parsed.tags
+      : [];
+
+    const seen = new Set<string>();
+    return candidates
+      .map(tag => (typeof tag === 'string' ? tag : ''))
+      .map(tag => tag.trim().replace(/^#/, '').toLowerCase())
+      .map(tag => tag.replace(/\s+/g, '-'))
+      .map(tag => tag.replace(/[^a-z0-9_-]/g, ''))
+      .filter(tag => tag.length >= 2 && tag.length <= 24)
+      .filter(tag => {
+        if (!tag || seen.has(tag)) return false;
+        seen.add(tag);
+        return true;
+      })
+      .slice(0, 8);
+  } catch (e) {
+    console.error("Auto-tagging failed", e);
+    return [];
+  }
+};
+
 // NEW: Generate an art prompt based on note content
 export const generateImagePrompt = async (content: string): Promise<string> => {
     const ai = getAI();
